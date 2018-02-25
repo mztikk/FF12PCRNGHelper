@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FF12PCRNGHelper", "FF12PCRNGHelper\FF12PCRNGHelper.csproj", "{D703C45F-BCF6-4A28-A36F-81F828FB88DB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{900DED74-79E0-4FCF-BFA3-869FE74766B1}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Debug|x64.ActiveCfg = Debug|x64
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Debug|x64.Build.0 = Debug|x64
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Release|x64.ActiveCfg = Release|x64
+		{D703C45F-BCF6-4A28-A36F-81F828FB88DB}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {185633BA-D80B-4623-9960-DD699606E2A3}
+	EndGlobalSection
+EndGlobal
