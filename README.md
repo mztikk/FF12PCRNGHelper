@@ -9,8 +9,14 @@ This means there is no need to enter cure values to find where we are in the seq
 
 Current State shows the next immediate rng value, followed by the next 1000.
 
-# Dependencies
+# How to use
+1. Start the game
+2. Start app
 
+# Dependencies
 .NET Framework 4.7.1\
 https://www.microsoft.com/en-us/download/details.aspx?id=56115
 https://www.microsoft.com/net/download/thank-you/net471
+
+# Credits
+https://github.com/Tranquilite0/FF12RNGHelper
