@@ -11,6 +11,15 @@ namespace FF12PCRNGHelper
         [STAThread]
         private static void Main()
         {
+            try
+            {
+                Config.Load();
+            }
+            // Config has default values for when loading fails.
+            catch
+            {
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new Form1());

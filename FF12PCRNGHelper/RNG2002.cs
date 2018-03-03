@@ -54,7 +54,7 @@ namespace FF12PCRNGHelper
         /// <summary>
         ///     This is the seed the PS4/FF12:ZA uses
         /// </summary>
-        private const uint DEFAULT_SEED = 4537U; // 5489U is default seed. PS2 and PS4/FF12:ZA uses 4537.
+        public const uint DEFAULT_SEED = 4537U; // 5489U is default seed. PS2 and PS4/FF12:ZA uses 4537.
 
         /* Period parameters */
         private const int N = 624;
@@ -69,10 +69,15 @@ namespace FF12PCRNGHelper
 
         private readonly uint[] mag01 = {0x0U, MATRIX_A}; //Moved out of below method.
 
-        public RNG2002(uint seed = DEFAULT_SEED)
+        public RNG2002(uint seed)
         {
             this.Seed = seed;
             this.sgenrand(seed);
+        }
+
+        // Empty constructor for faster initialization, we don't care about seeding since we loadState.
+        public RNG2002()
+        {
         }
 
         public uint[] mt { get; set; } = new uint[N]; /* the array for the state vector  */
@@ -178,6 +183,22 @@ namespace FF12PCRNGHelper
         {
             this.mti = inputState.mti;
             inputState.mt.CopyTo(this.mt, 0);
+        }
+
+        /// <summary>
+        ///     Dumps random numbers.
+        /// </summary>
+        /// <param name="size">size of dump</param>
+        /// <returns></returns>
+        public uint[] Dump(int size)
+        {
+            var rtn = new uint[size];
+            for (var i = 0; i < size; i++)
+            {
+                rtn[i] = this.genrand();
+            }
+
+            return rtn;
         }
     }
 }

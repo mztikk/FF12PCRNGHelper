@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -9,6 +9,15 @@ namespace FF12PCRNGHelper
 {
     public partial class Form1 : Form
     {
+        public enum CompareType
+        {
+            Equal,
+
+            LesserOrEqual,
+
+            GreaterOrEqual
+        }
+
         public enum StealType
         {
             None,
@@ -22,17 +31,127 @@ namespace FF12PCRNGHelper
 
         private static RemoteMemory _remoteMem;
 
-        private readonly int _gridSize = 1000;
+        private static Color _defaultBackColor;
 
-        private readonly uint[][] _rVals = new uint[10][];
+        private static Color _defaultBackHighColor;
+
+        private static readonly Color HighlightBackColor = Color.Green;
+
+        private static readonly Color SelectionHighlightBackColor = Color.DarkGreen;
+
+        private readonly uint[][] _rVals = new uint[3][];
+
+        private int _foundIndex = -1;
+
+        private int _lastMti = -1;
+
+        private int _movement;
+
+        private uint[] _rngDump;
 
         public Form1()
         {
             this.InitializeComponent();
-            this.timer1.Start();
 
-            this.dataGridView1.Rows.Add();
-            this.dataGridView2.Rows.Add(this._gridSize);
+            //this.dataGridView1.Rows.Add();
+            this.dataGridView2.Rows.Add(Config.GridSize);
+            _defaultBackColor = this.dataGridView2.DefaultCellStyle.BackColor;
+            _defaultBackHighColor = this.dataGridView2.DefaultCellStyle.SelectionBackColor;
+            this.timer1.Start();
+        }
+
+        private int SearchPercentages(PSearch[] percentages)
+        {
+            try
+            {
+                var rng = new RNG2002();
+                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+
+                rng.loadState(mti, mt);
+                this._rngDump = rng.Dump(Config.SearchDepth);
+
+                for (var i = 0; i < this._rngDump.Length; i++)
+                {
+                    var pVal = this._rngDump[i] % 100;
+                    switch (percentages[0].CompareType)
+                    {
+                        case CompareType.Equal:
+                            if (pVal != percentages[0].Percentage)
+                            {
+                                continue;
+                            }
+
+                            break;
+                        case CompareType.LesserOrEqual:
+                            if (pVal > percentages[0].Percentage)
+                            {
+                                continue;
+                            }
+
+                            break;
+                        case CompareType.GreaterOrEqual:
+                            if (pVal < percentages[0].Percentage)
+                            {
+                                continue;
+                            }
+
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
+                    if (this.SearchDump(percentages, i))
+                    {
+                        return i;
+                    }
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                this._rngDump = Array.Empty<uint>();
+            }
+
+            return -1;
+        }
+
+        private bool SearchDump(PSearch[] percentages, int index)
+        {
+            for (var i = 0; i < percentages.Length; i++)
+            {
+                var pVal = this._rngDump[index + i] % 100;
+                switch (percentages[i].CompareType)
+                {
+                    case CompareType.Equal:
+                        if (pVal != percentages[i].Percentage)
+                        {
+                            return false;
+                        }
+
+                        break;
+                    case CompareType.LesserOrEqual:
+                        if (pVal > percentages[i].Percentage)
+                        {
+                            return false;
+                        }
+
+                        break;
+                    case CompareType.GreaterOrEqual:
+                        if (pVal < percentages[i].Percentage)
+                        {
+                            return false;
+                        }
+
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            return true;
         }
 
         private static void AttachProc()
@@ -57,6 +176,8 @@ namespace FF12PCRNGHelper
             _remoteMem = new RemoteMemory(proc);
         }
 
+        // Replaced by try/catch for better performance, handle validity and Process.HasExited calls are costly it seems.
+        // Need to look into that some time to maybe optimize it.
         private static bool RemoteInvalid()
         {
             return _remoteMem == null || !_remoteMem.IsValid;
@@ -110,13 +231,13 @@ namespace FF12PCRNGHelper
 
         private void Generate()
         {
-            if (RemoteInvalid())
-            {
-                return;
-            }
+            var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
+            var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
-            var mti = _remoteMem.Read<int>(MemoryData.MtiAddress, true);
-            var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624, true);
+            if (this._lastMti == -1)
+            {
+                this._lastMti = mti;
+            }
 
             var rng = new RNG2002();
             rng.loadState(mti, mt);
@@ -126,6 +247,32 @@ namespace FF12PCRNGHelper
                 this._rVals[i] = new[] {rng.genrand(), (uint) rng.mti, rng.mt[rng.mti - 1]};
             }
 
+            if (mti >= this._lastMti)
+            {
+                this._movement = mti - this._lastMti;
+            }
+            else
+            {
+                var diffToMax = 624 - this._lastMti;
+                this._movement = mti + diffToMax;
+            }
+
+            this._lastMti = mti;
+
+            if (this._foundIndex == 0)
+            {
+                this.stepsToResult.Text = "You are at your search result!";
+            }
+            else if (this._foundIndex > 0)
+            {
+                this.stepsToResult.Text = "Advances to search result: " + this._foundIndex;
+            }
+            else
+            {
+                this.stepsToResult.Text = string.Empty;
+            }
+
+            /*
             this.dataGridView1.Rows[0].Cells[0].Value = 0;
             this.dataGridView1.Rows[0].Cells[1].Value = this._rVals[0][0] % 100;
             this.dataGridView1.Rows[0].Cells[2].Value = this._rVals[0][0] < 0x1000000;
@@ -135,23 +282,49 @@ namespace FF12PCRNGHelper
                 GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
             this.dataGridView1.Rows[0].Cells[5].Value = this._rVals[0][0];
             this.dataGridView1.Rows[0].Cells[6].Value = this._rVals[0][1];
-            this.dataGridView1.Rows[0].Cells[7].Value = this._rVals[0][2];
+            //this.dataGridView1.Rows[0].Cells[7].Value = this._rVals[0][2];
+            */
 
-            for (var i = 1; i <= this._gridSize; i++)
+            for (var i = 0; i < this.dataGridView2.RowCount; i++)
             {
+                this.dataGridView2.Rows[i].Cells[0].Value = i;
+                this.dataGridView2.Rows[i].Cells[1].Value = this._rVals[0][0] % 100;
+                this.dataGridView2.Rows[i].Cells[2].Value = this._rVals[0][0] < 0x1000000;
+                this.dataGridView2.Rows[i].Cells[3].Value =
+                    GetStealType(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]);
+                this.dataGridView2.Rows[i].Cells[4].Value = string.Join(" + ",
+                    GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
+                this.dataGridView2.Rows[i].Cells[5].Value = this._rVals[0][0];
+                this.dataGridView2.Rows[i].Cells[6].Value = this._rVals[0][1];
+                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][2];
+                if (i == this._foundIndex && this._movement > 0)
+                {
+                    this.dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
+                    this.dataGridView2.Rows[i].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
+
+                    if (this._movement <= i)
+                    {
+                        this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.BackColor = HighlightBackColor;
+                        this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.SelectionBackColor =
+                            SelectionHighlightBackColor;
+                        //this.foundIndex -= this.movement;
+                    }
+                }
+
                 Array.Copy(this._rVals, 1, this._rVals, 0, this._rVals.Length - 1);
                 this._rVals[this._rVals.Length - 1] = new[] {rng.genrand(), (uint) rng.mti, rng.mt[rng.mti - 1]};
+            }
 
-                this.dataGridView2.Rows[i - 1].Cells[0].Value = i;
-                this.dataGridView2.Rows[i - 1].Cells[1].Value = this._rVals[0][0] % 100;
-                this.dataGridView2.Rows[i - 1].Cells[2].Value = this._rVals[0][0] < 0x1000000;
-                this.dataGridView2.Rows[i - 1].Cells[3].Value =
-                    GetStealType(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]);
-                this.dataGridView2.Rows[i - 1].Cells[4].Value = string.Join(" + ",
-                    GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
-                this.dataGridView2.Rows[i - 1].Cells[5].Value = this._rVals[0][0];
-                this.dataGridView2.Rows[i - 1].Cells[6].Value = this._rVals[0][1];
-                this.dataGridView2.Rows[i - 1].Cells[7].Value = this._rVals[0][2];
+            if (this._movement > 0)
+            {
+                if (this._foundIndex > -1)
+                {
+                    this._foundIndex -= this._movement;
+                }
+                else
+                {
+                    this._foundIndex = -1;
+                }
             }
         }
 
@@ -161,6 +334,20 @@ namespace FF12PCRNGHelper
             {
                 AttachProc();
             }
+            else
+            {
+                try
+                {
+                    this.Generate();
+                }
+                catch
+                {
+                    _remoteMem.Dispose();
+                    _remoteMem = null;
+                }
+            }
+
+            /*
             else if (RemoteInvalid())
             {
                 _remoteMem.Dispose();
@@ -170,31 +357,113 @@ namespace FF12PCRNGHelper
             {
                 this.Generate();
             }
+            */
         }
 
-        private void TbInterval_Validating(object sender, CancelEventArgs e)
+        private void ButtonSearch_Click(object sender, EventArgs e)
         {
-            if (!int.TryParse(this.tbInterval.Text, out var tmp))
+            if (this._foundIndex > -1 && this._foundIndex < this.dataGridView2.RowCount)
             {
-                this.tbInterval.Text = "100";
-                tmp = 100;
+                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = _defaultBackColor;
+                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
+
+                this._foundIndex = -1;
             }
 
-            if (tmp < 1)
+            var t = Strings.RemoveWhitespace(this.tbSearch.Text);
+            if (t.Except("1234567890+-,").Any())
             {
-                tmp = 1;
-                this.tbInterval.Text = "1";
+                return;
             }
 
-            this.timer1.Interval = tmp;
+            var vals = t.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+            var parsed = new PSearch[vals.Length];
+            for (var i = 0; i < vals.Length; i++)
+            {
+                CompareType cType;
+                if (vals[i].Contains('+'))
+                {
+                    cType = CompareType.GreaterOrEqual;
+                }
+                else if (vals[i].Contains('-'))
+                {
+                    cType = CompareType.LesserOrEqual;
+                }
+                else
+                {
+                    cType = CompareType.Equal;
+                }
+
+                var cl = vals[i].Replace("+", string.Empty).Replace("-", string.Empty);
+                if (!uint.TryParse(cl, out var tmp))
+                {
+                    return;
+                }
+
+                parsed[i] = new PSearch(tmp, cType);
+            }
+
+            if (!parsed.Any())
+            {
+                return;
+            }
+
+            this._foundIndex = this.SearchPercentages(parsed);
+            if (this._foundIndex == -1)
+            {
+                MessageBox.Show("Entered percentage(s) not found.");
+            }
+            else if (this._foundIndex < this.dataGridView2.RowCount)
+            {
+                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                    SelectionHighlightBackColor;
+                this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+            }
         }
 
-        private void TbInterval_KeyPress(object sender, KeyPressEventArgs e)
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (e.KeyChar == (char) Keys.Enter)
+            Config.Save();
+        }
+
+        private void ButtonConfig_Click(object sender, EventArgs e)
+        {
+            var cfg = new ConfigForm(ref this.timer1);
+            if (cfg.ShowDialog(this) == DialogResult.OK)
             {
-                this.tbInterval.FindForm()?.Validate();
-                e.Handled = true;
+                if (this.dataGridView2.RowCount != Config.GridSize)
+                {
+                    this.dataGridView2.Rows.Clear();
+                    this.dataGridView2.Rows.Add(Config.GridSize);
+                }
+            }
+        }
+
+        private void DataGridView2_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Modifiers == Keys.Control && e.KeyCode == Keys.Q)
+            {
+                this.ButtonGridDump_Click(this.dataGridView2, new EventArgs());
+            }
+        }
+
+        private void ButtonGridDump_Click(object sender, EventArgs e)
+        {
+            var d = new DumpForm(this.dataGridView2.SelectedRows);
+            d.Show(this);
+        }
+
+        public struct PSearch
+        {
+            public uint Percentage { get; }
+
+            public CompareType CompareType { get; }
+
+            public PSearch(uint percentage, CompareType compareType)
+            {
+                this.Percentage = percentage;
+                this.CompareType = compareType;
             }
         }
     }
