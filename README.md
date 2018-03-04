@@ -20,7 +20,9 @@ But you can also enter + and - for searching greater/lesser.\
 80+, 95+ will search for 80 or greater followed by 95 or greater.
 
 You can find more info in my reddit post: \
-https://www.reddit.com/r/FinalFantasyXII/comments/806nmo/rng_helper_app_for_pc_version/
+https://www.reddit.com/r/FinalFantasyXII/comments/806nmo/rng_helper_app_for_pc_version/ \
+For an in-depth explanation on perfect hp&mp check out this guide from baltieks \
+https://docs.google.com/document/d/1e0YHEWwoLoq9w7x2oO03Fecqdt-Mdqy7yN5a_xTFW_w/edit
 
 # Dependencies
 .NET Framework 4.7.1\
