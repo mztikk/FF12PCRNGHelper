@@ -58,6 +58,7 @@ namespace FF12PCRNGHelper
             this.searchMenu3Search = new System.Windows.Forms.ToolStripMenuItem();
             this.searchMenu1Search = new System.Windows.Forms.ToolStripMenuItem();
             this.searchMenuHighestPerfect = new System.Windows.Forms.ToolStripMenuItem();
+            this.searchMenu1256 = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
             this.gridRightClickMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericLevel)).BeginInit();
@@ -285,10 +286,11 @@ namespace FF12PCRNGHelper
             this.searchMenu20002,
             this.searchMenu3Search,
             this.searchMenu1Search,
-            this.searchMenuHighestPerfect});
+            this.searchMenuHighestPerfect,
+            this.searchMenu1256});
             this.searchesToolStripMenuItem.Name = "searchesToolStripMenuItem";
-            this.searchesToolStripMenuItem.Size = new System.Drawing.Size(109, 20);
-            this.searchesToolStripMenuItem.Text = "Levelup Searches";
+            this.searchesToolStripMenuItem.Size = new System.Drawing.Size(65, 20);
+            this.searchesToolStripMenuItem.Text = "Searches";
             // 
             // searchMenu20002
             // 
@@ -317,6 +319,13 @@ namespace FF12PCRNGHelper
             this.searchMenuHighestPerfect.Size = new System.Drawing.Size(185, 22);
             this.searchMenuHighestPerfect.Text = "Highest Perfect Level";
             this.searchMenuHighestPerfect.Click += new System.EventHandler(this.SearchMenuHighestPerfect_Click);
+            // 
+            // searchMenu1256
+            // 
+            this.searchMenu1256.Name = "searchMenu1256";
+            this.searchMenu1256.Size = new System.Drawing.Size(185, 22);
+            this.searchMenu1256.Text = "1/256";
+            this.searchMenu1256.Click += new System.EventHandler(this.SearchMenu1256_Click);
             // 
             // Form1
             // 
@@ -375,6 +384,7 @@ namespace FF12PCRNGHelper
         private ToolStripMenuItem searchMenu3Search;
         private ToolStripMenuItem searchMenuHighestPerfect;
         private ToolStripMenuItem searchMenu1Search;
+        private ToolStripMenuItem searchMenu1256;
     }
 }
 

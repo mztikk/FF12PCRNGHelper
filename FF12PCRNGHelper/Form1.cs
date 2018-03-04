@@ -385,10 +385,14 @@ namespace FF12PCRNGHelper
 
         private void ResetGridHighlighting()
         {
-            if (this._foundIndex > -1 && this._foundIndex < this.dataGridView2.RowCount)
+            if (this._foundIndex > -1)
             {
-                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = _defaultBackColor;
-                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
+                if (this._foundIndex < this.dataGridView2.RowCount)
+                {
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = _defaultBackColor;
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                        _defaultBackHighColor;
+                }
 
                 this._foundIndex = -1;
             }
@@ -489,16 +493,8 @@ namespace FF12PCRNGHelper
 
         private void Button20002Search_Click(object sender, EventArgs e)
         {
-            this.ResetGridHighlighting();
-
-            try
+            this.DynamicSearchRngDump(() =>
             {
-                var rng = new RNG2002();
-                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
-
-                rng.loadState(mti, mt);
-                this._rngDump = rng.Dump(Config.SearchDepth);
                 var first = true;
                 for (var i = 0; i < this._rngDump.Length - 5; i++)
                 {
@@ -518,49 +514,20 @@ namespace FF12PCRNGHelper
                             break;
                         }
 
+                        i -= 3;
                         first = true;
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                if (ex is OutOfMemoryException)
-                {
-                    MessageBox.Show("Ran out of memory, lower your search depth.");
-                }
-            }
-            finally
-            {
-                this._rngDump = Array.Empty<uint>();
-                if (this._foundIndex < 0)
-                {
-                    MessageBox.Show("Nothing found.");
-                }
-                else if (this._foundIndex < this.dataGridView2.RowCount)
-                {
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
-                        SelectionHighlightBackColor;
-                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
-                }
-            }
+            });
         }
 
         private void SearchMenuHighestPerfect_Click(object sender, EventArgs e)
         {
-            this.ResetGridHighlighting();
-
-            try
+            this.DynamicSearchRngDump(() =>
             {
-                var rng = new RNG2002();
-                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
-
-                rng.loadState(mti, mt);
-                this._rngDump = rng.Dump(Config.SearchDepth);
                 var highest = 0;
                 var highestIndex = -1;
-                for (var i = 0; i < this._rngDump.Length - 2; i++)
+                for (var i = 0; i < this._rngDump.Length; i++)
                 {
                     var pAmount = LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i);
                     if (pAmount > highest)
@@ -571,32 +538,30 @@ namespace FF12PCRNGHelper
                 }
 
                 this._foundIndex = highestIndex;
-            }
-            catch (Exception ex)
-            {
-                if (ex is OutOfMemoryException)
-                {
-                    MessageBox.Show("Ran out of memory, lower your search depth.");
-                }
-            }
-            finally
-            {
-                this._rngDump = Array.Empty<uint>();
-                if (this._foundIndex < 0)
-                {
-                    MessageBox.Show("Nothing found.");
-                }
-                else if (this._foundIndex < this.dataGridView2.RowCount)
-                {
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
-                        SelectionHighlightBackColor;
-                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
-                }
-            }
+            });
         }
 
         private void SearchPerfectLevels(int minLevel)
+        {
+            this.DynamicSearchRngDump(() =>
+            {
+                for (var i = 0; i < this._rngDump.Length - minLevel; i++)
+                {
+                    if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= minLevel)
+                    {
+                        this._foundIndex = i;
+                        break;
+                    }
+                }
+            });
+        }
+
+        private void SearchMenu1Search_Click(object sender, EventArgs e)
+        {
+            this.SearchPerfectLevels(1);
+        }
+
+        private void DynamicSearchRngDump(Action action)
         {
             this.ResetGridHighlighting();
 
@@ -609,14 +574,7 @@ namespace FF12PCRNGHelper
                 rng.loadState(mti, mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
 
-                for (var i = 0; i < this._rngDump.Length - 2; i++)
-                {
-                    if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= minLevel)
-                    {
-                        this._foundIndex = i;
-                        break;
-                    }
-                }
+                action.Invoke();
             }
             catch (Exception ex)
             {
@@ -642,9 +600,19 @@ namespace FF12PCRNGHelper
             }
         }
 
-        private void SearchMenu1Search_Click(object sender, EventArgs e)
+        private void SearchMenu1256_Click(object sender, EventArgs e)
         {
-            this.SearchPerfectLevels(1);
+            this.DynamicSearchRngDump(() =>
+            {
+                for (var i = 0; i < this._rngDump.Length; i++)
+                {
+                    if (this._rngDump[i] < 0x1000000)
+                    {
+                        this._foundIndex = i;
+                        break;
+                    }
+                }
+            });
         }
 
         public struct PSearch
