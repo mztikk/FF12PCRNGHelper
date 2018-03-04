@@ -5,9 +5,14 @@ namespace FF12PCRNGHelper
 {
     public partial class DumpForm : Form
     {
-        public DumpForm(DataGridViewSelectedRowCollection dgvSelection)
+        public DumpForm(DataGridViewSelectedRowCollection dgvSelection, DataGridViewColumnCollection columns)
         {
             this.InitializeComponent();
+
+            foreach (DataGridViewColumn column in columns)
+            {
+                this.dataGridView2.Columns.Add((DataGridViewColumn) column.Clone());
+            }
 
             foreach (DataGridViewRow row in dgvSelection)
             {

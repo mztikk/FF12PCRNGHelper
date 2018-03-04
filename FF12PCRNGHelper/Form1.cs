@@ -39,8 +39,6 @@ namespace FF12PCRNGHelper
 
         private static readonly Color SelectionHighlightBackColor = Color.DarkGreen;
 
-        private readonly uint[][] _rVals = new uint[3][];
-
         private int _foundIndex = -1;
 
         private int _lastMti = -1;
@@ -48,6 +46,8 @@ namespace FF12PCRNGHelper
         private int _movement;
 
         private uint[] _rngDump;
+
+        private uint[][] _rVals = new uint[10][];
 
         public Form1()
         {
@@ -107,8 +107,12 @@ namespace FF12PCRNGHelper
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                if (ex is OutOfMemoryException)
+                {
+                    MessageBox.Show("Ran out of memory, lower your search depth.");
+                }
             }
             finally
             {
@@ -285,6 +289,8 @@ namespace FF12PCRNGHelper
             //this.dataGridView1.Rows[0].Cells[7].Value = this._rVals[0][2];
             */
 
+            var level = (uint) this.numericLevel.Value;
+
             for (var i = 0; i < this.dataGridView2.RowCount; i++)
             {
                 this.dataGridView2.Rows[i].Cells[0].Value = i;
@@ -294,9 +300,26 @@ namespace FF12PCRNGHelper
                     GetStealType(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]);
                 this.dataGridView2.Rows[i].Cells[4].Value = string.Join(" + ",
                     GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
-                this.dataGridView2.Rows[i].Cells[5].Value = this._rVals[0][0];
-                this.dataGridView2.Rows[i].Cells[6].Value = this._rVals[0][1];
-                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][2];
+
+                var pAmount = LevelUpStats.PerfectHpMpCount(level, ref this._rVals);
+                string pString;
+                if (pAmount <= 0)
+                {
+                    pString = "False";
+                }
+                else if (pAmount == 1)
+                {
+                    pString = "True";
+                }
+                else
+                {
+                    pString = "True " + pAmount;
+                }
+
+                this.dataGridView2.Rows[i].Cells[5].Value = pString;
+                this.dataGridView2.Rows[i].Cells[6].Value = this._rVals[0][0];
+                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][1];
+                this.dataGridView2.Rows[i].Cells[8].Value = this._rVals[0][2];
                 if (i == this._foundIndex && this._movement > 0)
                 {
                     this.dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
@@ -360,7 +383,7 @@ namespace FF12PCRNGHelper
             */
         }
 
-        private void ButtonSearch_Click(object sender, EventArgs e)
+        private void ResetGridHighlighting()
         {
             if (this._foundIndex > -1 && this._foundIndex < this.dataGridView2.RowCount)
             {
@@ -369,6 +392,11 @@ namespace FF12PCRNGHelper
 
                 this._foundIndex = -1;
             }
+        }
+
+        private void ButtonSearch_Click(object sender, EventArgs e)
+        {
+            this.ResetGridHighlighting();
 
             var t = Strings.RemoveWhitespace(this.tbSearch.Text);
             if (t.Except("1234567890+-,").Any())
@@ -450,8 +478,173 @@ namespace FF12PCRNGHelper
 
         private void ButtonGridDump_Click(object sender, EventArgs e)
         {
-            var d = new DumpForm(this.dataGridView2.SelectedRows);
+            var d = new DumpForm(this.dataGridView2.SelectedRows, this.dataGridView2.Columns);
             d.Show(this);
+        }
+
+        private void Button3Search_Click(object sender, EventArgs e)
+        {
+            this.SearchPerfectLevels(3);
+        }
+
+        private void Button20002Search_Click(object sender, EventArgs e)
+        {
+            this.ResetGridHighlighting();
+
+            try
+            {
+                var rng = new RNG2002();
+                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+
+                rng.loadState(mti, mt);
+                this._rngDump = rng.Dump(Config.SearchDepth);
+                var first = true;
+                for (var i = 0; i < this._rngDump.Length - 5; i++)
+                {
+                    if (first)
+                    {
+                        if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= 2)
+                        {
+                            first = false;
+                            i += 3;
+                        }
+                    }
+                    else
+                    {
+                        if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= 2)
+                        {
+                            this._foundIndex = i - 4;
+                            break;
+                        }
+
+                        first = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is OutOfMemoryException)
+                {
+                    MessageBox.Show("Ran out of memory, lower your search depth.");
+                }
+            }
+            finally
+            {
+                this._rngDump = Array.Empty<uint>();
+                if (this._foundIndex < 0)
+                {
+                    MessageBox.Show("Nothing found.");
+                }
+                else if (this._foundIndex < this.dataGridView2.RowCount)
+                {
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                        SelectionHighlightBackColor;
+                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+                }
+            }
+        }
+
+        private void SearchMenuHighestPerfect_Click(object sender, EventArgs e)
+        {
+            this.ResetGridHighlighting();
+
+            try
+            {
+                var rng = new RNG2002();
+                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+
+                rng.loadState(mti, mt);
+                this._rngDump = rng.Dump(Config.SearchDepth);
+                var highest = 0;
+                var highestIndex = -1;
+                for (var i = 0; i < this._rngDump.Length - 2; i++)
+                {
+                    var pAmount = LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i);
+                    if (pAmount > highest)
+                    {
+                        highest = pAmount;
+                        highestIndex = i;
+                    }
+                }
+
+                this._foundIndex = highestIndex;
+            }
+            catch (Exception ex)
+            {
+                if (ex is OutOfMemoryException)
+                {
+                    MessageBox.Show("Ran out of memory, lower your search depth.");
+                }
+            }
+            finally
+            {
+                this._rngDump = Array.Empty<uint>();
+                if (this._foundIndex < 0)
+                {
+                    MessageBox.Show("Nothing found.");
+                }
+                else if (this._foundIndex < this.dataGridView2.RowCount)
+                {
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                        SelectionHighlightBackColor;
+                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+                }
+            }
+        }
+
+        private void SearchPerfectLevels(int minLevel)
+        {
+            this.ResetGridHighlighting();
+
+            try
+            {
+                var rng = new RNG2002();
+                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+
+                rng.loadState(mti, mt);
+                this._rngDump = rng.Dump(Config.SearchDepth);
+
+                for (var i = 0; i < this._rngDump.Length - 2; i++)
+                {
+                    if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= minLevel)
+                    {
+                        this._foundIndex = i;
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is OutOfMemoryException)
+                {
+                    MessageBox.Show("Ran out of memory, lower your search depth.");
+                }
+            }
+            finally
+            {
+                this._rngDump = Array.Empty<uint>();
+                if (this._foundIndex < 0)
+                {
+                    MessageBox.Show("Nothing found.");
+                }
+                else if (this._foundIndex < this.dataGridView2.RowCount)
+                {
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                        SelectionHighlightBackColor;
+                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+                }
+            }
+        }
+
+        private void SearchMenu1Search_Click(object sender, EventArgs e)
+        {
+            this.SearchPerfectLevels(1);
         }
 
         public struct PSearch

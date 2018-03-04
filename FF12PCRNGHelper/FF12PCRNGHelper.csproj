@@ -84,6 +84,7 @@
     <Compile Include="DumpForm.Designer.cs">
       <DependentUpon>DumpForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="LevelUpStats.cs" />
     <Compile Include="RngData.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
