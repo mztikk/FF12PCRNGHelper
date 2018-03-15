@@ -61,12 +61,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -99,6 +94,13 @@
     <Compile Include="MemoryProtection.cs" />
     <Compile Include="ProcessAccessFlags.cs" />
     <Compile Include="RemoteMemory.cs" />
+    <Compile Include="RngInjection.cs" />
+    <Compile Include="RngInjectionForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RngInjectionForm.Designer.cs">
+      <DependentUpon>RngInjectionForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="RNGState.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -124,6 +126,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="RngInjectionForm.resx">
+      <DependentUpon>RngInjectionForm.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -136,6 +141,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\image_loading.gif" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

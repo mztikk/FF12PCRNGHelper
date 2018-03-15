@@ -35,13 +35,18 @@ namespace FF12PCRNGHelper
 
         public static string RemoveWhitespace(string input)
         {
+            return RemoveChars(input, WhitespaceChars);
+        }
+
+        public static string RemoveChars(string input, HashSet<char> chars)
+        {
             var len = input.Length;
             var src = input.ToCharArray();
             var dstIdx = 0;
             for (var i = 0; i < len; i++)
             {
                 var ch = src[i];
-                if (WhitespaceChars.Contains(ch))
+                if (chars.Contains(ch))
                 {
                     continue;
                 }

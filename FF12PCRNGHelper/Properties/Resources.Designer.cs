@@ -59,5 +59,15 @@ namespace FF12PCRNGHelper.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap image_loading {
+            get {
+                object obj = ResourceManager.GetObject("image_loading", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
     }
 }

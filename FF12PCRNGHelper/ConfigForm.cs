@@ -19,7 +19,6 @@ namespace FF12PCRNGHelper
             this.tbInterval.Text = Config.RefreshInterval.ToString();
             this.tbGridSize.Text = Config.GridSize.ToString();
             this.tbSearchDepth.Text = Config.SearchDepth.ToString();
-            this.tbWorkerAmount.Text = Config.WorkerAmount.ToString();
         }
 
         private void ButtonCancel_Click(object sender, EventArgs e)
@@ -44,11 +43,6 @@ namespace FF12PCRNGHelper
             if (int.TryParse(this.tbSearchDepth.Text, out var searchDepth) && searchDepth > 0)
             {
                 Config.SearchDepth = searchDepth;
-            }
-
-            if (int.TryParse(this.tbWorkerAmount.Text, out var workerAmount) && workerAmount > 0)
-            {
-                Config.WorkerAmount = workerAmount;
             }
 
             Config.Save();
@@ -90,18 +84,6 @@ namespace FF12PCRNGHelper
             else if (tmp < 1)
             {
                 this.tbSearchDepth.Text = "1";
-            }
-        }
-
-        private void TbWorkerAmount_Validating(object sender, CancelEventArgs e)
-        {
-            if (!int.TryParse(this.tbWorkerAmount.Text, out var tmp))
-            {
-                this.tbWorkerAmount.Text = Config.WorkerAmount.ToString();
-            }
-            else if (tmp < 1)
-            {
-                this.tbWorkerAmount.Text = "1";
             }
         }
     }

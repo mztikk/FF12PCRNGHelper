@@ -1,14 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Windows.Forms;
 
 namespace FF12PCRNGHelper
 {
-    internal static class RngData
+    internal class RngData
     {
-        private static bool _finishedSearching;
-
         private static readonly Dictionary<uint, uint> PData = new Dictionary<uint, uint>
         {
             {0, 0},
@@ -113,17 +110,33 @@ namespace FF12PCRNGHelper
             {99, 83}
         };
 
-        internal static void GetMtForValue(uint value, uint workerAmount = 2)
-        {
-            _finishedSearching = false;
+        private static readonly ConcurrentDictionary<uint, uint> ValueCache = new ConcurrentDictionary<uint, uint>();
 
-            for (uint i = 0; i < workerAmount; i++)
+        internal static uint GetMtForValue(uint value)
+        {
+            if (ValueCache.ContainsKey(value) && ValueCache.TryGetValue(value, out var rtn))
             {
-                var bg = new BackgroundWorker();
-                bg.DoWork += WorkerWork;
-                bg.RunWorkerCompleted += WorkerCompleted;
-                bg.RunWorkerAsync(new RngSearch(i, value, uint.MaxValue, workerAmount));
+                return rtn;
             }
+
+            var rng = new RNG2002();
+            for (uint i = 0; i < uint.MaxValue; i++)
+            {
+                rng.mti = 1;
+                rng.mt[1] = i;
+                var rVal = rng.genrand();
+                if (rVal == value)
+                {
+                    if (!ValueCache.ContainsKey(value))
+                    {
+                        ValueCache.TryAdd(value, i);
+                    }
+
+                    return i;
+                }
+            }
+
+            throw new Exception();
         }
 
         internal static uint GetMtForPercentage(uint percentage)
@@ -135,64 +148,6 @@ namespace FF12PCRNGHelper
             }
 
             return PData[percentage];
-        }
-
-        private static void WorkerCompleted(object o, RunWorkerCompletedEventArgs runWorkerCompletedEventArgs)
-        {
-            if (!runWorkerCompletedEventArgs.Cancelled)
-            {
-                _finishedSearching = true;
-                MessageBox.Show(runWorkerCompletedEventArgs.Result.ToString());
-            }
-        }
-
-        private static void WorkerWork(object o, DoWorkEventArgs doWorkEventArgs)
-        {
-            var rngsearch = (RngSearch) doWorkEventArgs.Argument;
-            var rng = new RNG2002();
-            for (var i = rngsearch.StartIndex;
-                i <= rngsearch.End;
-                i += rngsearch.Step * (uint) (rngsearch.ReverseLoop ? -1 : 1))
-            {
-                if (_finishedSearching)
-                {
-                    doWorkEventArgs.Cancel = true;
-                    return;
-                }
-
-                rng.mti = 1;
-                rng.mt[1] = i;
-                if (rng.genrand() == rngsearch.SearchValue)
-                {
-                    doWorkEventArgs.Result = i;
-                    return;
-                }
-            }
-
-            doWorkEventArgs.Cancel = true;
-        }
-
-        private struct RngSearch
-        {
-            public uint StartIndex { get; }
-
-            public uint SearchValue { get; }
-
-            public uint End { get; }
-
-            public uint Step { get; }
-
-            public bool ReverseLoop { get; }
-
-            public RngSearch(uint startIndex, uint searchValue, uint end = uint.MaxValue, uint step = 2,
-                bool reverseLoop = false)
-            {
-                this.StartIndex = startIndex;
-                this.SearchValue = searchValue;
-                this.End = end;
-                this.Step = step;
-                this.ReverseLoop = reverseLoop;
-            }
         }
     }
 }

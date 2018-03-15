@@ -39,6 +39,7 @@ namespace FF12PCRNGHelper
             this.dataGridViewTextBoxColumn4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridViewTextBoxColumn7 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column9 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -59,10 +60,13 @@ namespace FF12PCRNGHelper
             this.searchMenu1Search = new System.Windows.Forms.ToolStripMenuItem();
             this.searchMenuHighestPerfect = new System.Windows.Forms.ToolStripMenuItem();
             this.searchMenu1256 = new System.Windows.Forms.ToolStripMenuItem();
+            this.buttonRngInjection = new System.Windows.Forms.Button();
+            this.numericGil = new System.Windows.Forms.NumericUpDown();
+            this.label3 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
             this.gridRightClickMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericLevel)).BeginInit();
-            this.menuStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericGil)).BeginInit();
             this.SuspendLayout();
             // 
             // timer1
@@ -85,14 +89,15 @@ namespace FF12PCRNGHelper
             this.dataGridViewTextBoxColumn4,
             this.dataGridViewTextBoxColumn5,
             this.Column2,
+            this.Column3,
             this.dataGridViewTextBoxColumn7,
             this.Column9,
             this.Column1});
             this.dataGridView2.ContextMenuStrip = this.gridRightClickMenu;
-            this.dataGridView2.Location = new System.Drawing.Point(11, 104);
+            this.dataGridView2.Location = new System.Drawing.Point(11, 115);
             this.dataGridView2.Name = "dataGridView2";
             this.dataGridView2.RowHeadersWidth = 30;
-            this.dataGridView2.Size = new System.Drawing.Size(642, 335);
+            this.dataGridView2.Size = new System.Drawing.Size(665, 336);
             this.dataGridView2.TabIndex = 6;
             this.dataGridView2.KeyUp += new System.Windows.Forms.KeyEventHandler(this.DataGridView2_KeyUp);
             // 
@@ -142,6 +147,13 @@ namespace FF12PCRNGHelper
             this.Column2.Name = "Column2";
             this.Column2.ReadOnly = true;
             this.Column2.Width = 50;
+            // 
+            // Column3
+            // 
+            this.Column3.HeaderText = "Gil";
+            this.Column3.Name = "Column3";
+            this.Column3.ReadOnly = true;
+            this.Column3.Width = 35;
             // 
             // dataGridViewTextBoxColumn7
             // 
@@ -194,7 +206,7 @@ namespace FF12PCRNGHelper
             // stepsToResult
             // 
             this.stepsToResult.AutoSize = true;
-            this.stepsToResult.Location = new System.Drawing.Point(12, 85);
+            this.stepsToResult.Location = new System.Drawing.Point(12, 96);
             this.stepsToResult.Name = "stepsToResult";
             this.stepsToResult.Size = new System.Drawing.Size(71, 13);
             this.stepsToResult.TabIndex = 13;
@@ -213,9 +225,9 @@ namespace FF12PCRNGHelper
             // buttonConfig
             // 
             this.buttonConfig.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonConfig.Location = new System.Drawing.Point(576, 27);
+            this.buttonConfig.Location = new System.Drawing.Point(584, 27);
             this.buttonConfig.Name = "buttonConfig";
-            this.buttonConfig.Size = new System.Drawing.Size(78, 23);
+            this.buttonConfig.Size = new System.Drawing.Size(93, 23);
             this.buttonConfig.TabIndex = 15;
             this.buttonConfig.Text = "Configuration";
             this.buttonConfig.UseVisualStyleBackColor = true;
@@ -239,7 +251,7 @@ namespace FF12PCRNGHelper
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(340, 80);
+            this.label2.Location = new System.Drawing.Point(338, 91);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(36, 13);
             this.label2.TabIndex = 20;
@@ -248,7 +260,7 @@ namespace FF12PCRNGHelper
             // 
             // numericLevel
             // 
-            this.numericLevel.Location = new System.Drawing.Point(382, 78);
+            this.numericLevel.Location = new System.Drawing.Point(380, 89);
             this.numericLevel.Maximum = new decimal(new int[] {
             99,
             0,
@@ -260,7 +272,7 @@ namespace FF12PCRNGHelper
             0,
             0});
             this.numericLevel.Name = "numericLevel";
-            this.numericLevel.Size = new System.Drawing.Size(99, 20);
+            this.numericLevel.Size = new System.Drawing.Size(86, 20);
             this.numericLevel.TabIndex = 21;
             this.toolTip1.SetToolTip(this.numericLevel, "Used for perfect hp&mp, enter level you level up to.");
             this.numericLevel.Value = new decimal(new int[] {
@@ -272,13 +284,12 @@ namespace FF12PCRNGHelper
             // menuStrip1
             // 
             this.menuStrip1.BackColor = System.Drawing.SystemColors.Control;
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.searchesToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(666, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(689, 24);
             this.menuStrip1.TabIndex = 22;
             this.menuStrip1.Text = "menuStrip1";
+            this.menuStrip1.Items.Add(this.searchesToolStripMenuItem);
             // 
             // searchesToolStripMenuItem
             // 
@@ -327,12 +338,52 @@ namespace FF12PCRNGHelper
             this.searchMenu1256.Text = "1/256";
             this.searchMenu1256.Click += new System.EventHandler(this.SearchMenu1256_Click);
             // 
+            // buttonRngInjection
+            // 
+            this.buttonRngInjection.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonRngInjection.Location = new System.Drawing.Point(584, 56);
+            this.buttonRngInjection.Name = "buttonRngInjection";
+            this.buttonRngInjection.Size = new System.Drawing.Size(92, 23);
+            this.buttonRngInjection.TabIndex = 23;
+            this.buttonRngInjection.Text = "RNG Injection";
+            this.buttonRngInjection.UseVisualStyleBackColor = true;
+            this.buttonRngInjection.Click += new System.EventHandler(this.ButtonRngInjection_Click);
+            // 
+            // numericGil
+            // 
+            this.numericGil.Location = new System.Drawing.Point(380, 63);
+            this.numericGil.Maximum = new decimal(new int[] {
+            2147483647,
+            0,
+            0,
+            0});
+            this.numericGil.Name = "numericGil";
+            this.numericGil.Size = new System.Drawing.Size(86, 20);
+            this.numericGil.TabIndex = 24;
+            this.numericGil.Value = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(338, 65);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(22, 13);
+            this.label3.TabIndex = 25;
+            this.label3.Text = "Gil:";
+            // 
             // Form1
             // 
             this.AcceptButton = this.buttonSearch;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(666, 451);
+            this.ClientSize = new System.Drawing.Size(689, 463);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.numericGil);
+            this.Controls.Add(this.buttonRngInjection);
             this.Controls.Add(this.numericLevel);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.menuStrip1);
@@ -349,8 +400,7 @@ namespace FF12PCRNGHelper
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).EndInit();
             this.gridRightClickMenu.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.numericLevel)).EndInit();
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericGil)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -367,15 +417,6 @@ namespace FF12PCRNGHelper
         private ToolTip toolTip1;
         private ContextMenuStrip gridRightClickMenu;
         private ToolStripMenuItem buttonGridDump;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
-        private DataGridViewTextBoxColumn Column2;
-        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn7;
-        private DataGridViewTextBoxColumn Column9;
-        private DataGridViewTextBoxColumn Column1;
         private Label label2;
         private NumericUpDown numericLevel;
         private MenuStrip menuStrip1;
@@ -385,6 +426,19 @@ namespace FF12PCRNGHelper
         private ToolStripMenuItem searchMenuHighestPerfect;
         private ToolStripMenuItem searchMenu1Search;
         private ToolStripMenuItem searchMenu1256;
+        private Button buttonRngInjection;
+        private NumericUpDown numericGil;
+        private Label label3;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn3;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn4;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn5;
+        private DataGridViewTextBoxColumn Column2;
+        private DataGridViewTextBoxColumn Column3;
+        private DataGridViewTextBoxColumn dataGridViewTextBoxColumn7;
+        private DataGridViewTextBoxColumn Column9;
+        private DataGridViewTextBoxColumn Column1;
     }
 }
 

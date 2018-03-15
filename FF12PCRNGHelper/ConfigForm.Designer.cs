@@ -35,8 +35,6 @@
             this.label2 = new System.Windows.Forms.Label();
             this.tbSearchDepth = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
-            this.tbWorkerAmount = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
             this.buttonSave = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
@@ -110,30 +108,6 @@
             this.toolTip1.SetToolTip(this.label3, "Amount of random numbers to search through, if you set this too high it will lag " +
         "on searching.");
             // 
-            // tbWorkerAmount
-            // 
-            this.tbWorkerAmount.Dock = System.Windows.Forms.DockStyle.Top;
-            this.tbWorkerAmount.Location = new System.Drawing.Point(0, 132);
-            this.tbWorkerAmount.Name = "tbWorkerAmount";
-            this.tbWorkerAmount.Size = new System.Drawing.Size(284, 20);
-            this.tbWorkerAmount.TabIndex = 7;
-            this.toolTip1.SetToolTip(this.tbWorkerAmount, "Amount of workers used to find matching mt values. (Not implemented yet.)");
-            this.tbWorkerAmount.Visible = false;
-            this.tbWorkerAmount.Validating += new System.ComponentModel.CancelEventHandler(this.TbWorkerAmount_Validating);
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label4.Location = new System.Drawing.Point(0, 114);
-            this.label4.Name = "label4";
-            this.label4.Padding = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.label4.Size = new System.Drawing.Size(83, 18);
-            this.label4.TabIndex = 6;
-            this.label4.Text = "Worker amount:";
-            this.toolTip1.SetToolTip(this.label4, "Amount of workers used to find matching mt values. (Not implemented yet.)");
-            this.label4.Visible = false;
-            // 
             // buttonSave
             // 
             this.buttonSave.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -172,8 +146,6 @@
             this.ClientSize = new System.Drawing.Size(284, 211);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.buttonSave);
-            this.Controls.Add(this.tbWorkerAmount);
-            this.Controls.Add(this.label4);
             this.Controls.Add(this.tbSearchDepth);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.tbGridSize);
@@ -198,8 +170,6 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox tbSearchDepth;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox tbWorkerAmount;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button buttonSave;
         private System.Windows.Forms.Button buttonCancel;
         private System.Windows.Forms.ToolTip toolTip1;

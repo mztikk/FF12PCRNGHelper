@@ -9,7 +9,7 @@ namespace FF12PCRNGHelper
 {
     public partial class Form1 : Form
     {
-        public enum CompareType
+        public enum CompareType : byte
         {
             Equal,
 
@@ -18,7 +18,7 @@ namespace FF12PCRNGHelper
             GreaterOrEqual
         }
 
-        public enum StealType
+        public enum StealType : byte
         {
             None,
 
@@ -29,7 +29,11 @@ namespace FF12PCRNGHelper
             Rare
         }
 
-        private static RemoteMemory _remoteMem;
+        public const int PunchAdvancement = 10;
+
+        public const int CureAdvancement = 1;
+
+        internal static RemoteMemory RemoteMem;
 
         private static Color _defaultBackColor;
 
@@ -46,6 +50,8 @@ namespace FF12PCRNGHelper
         private int _movement;
 
         private uint[] _rngDump;
+
+        private RngInjectionForm _rngInjectionForm;
 
         private uint[][] _rVals = new uint[10][];
 
@@ -65,8 +71,8 @@ namespace FF12PCRNGHelper
             try
             {
                 var rng = new RNG2002();
-                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
                 rng.loadState(mti, mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
@@ -160,7 +166,7 @@ namespace FF12PCRNGHelper
 
         private static void AttachProc()
         {
-            if (_remoteMem != null)
+            if (RemoteMem != null)
             {
                 return;
             }
@@ -177,14 +183,14 @@ namespace FF12PCRNGHelper
                 return;
             }
 
-            _remoteMem = new RemoteMemory(proc);
+            RemoteMem = new RemoteMemory(proc);
         }
 
         // Replaced by try/catch for better performance, handle validity and Process.HasExited calls are costly it seems.
         // Need to look into that some time to maybe optimize it.
         private static bool RemoteInvalid()
         {
-            return _remoteMem == null || !_remoteMem.IsValid;
+            return RemoteMem == null || !RemoteMem.IsValid;
         }
 
         private static StealType GetStealType(uint rVal1, uint rVal2, uint rVal3)
@@ -235,8 +241,8 @@ namespace FF12PCRNGHelper
 
         private void Generate()
         {
-            var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
-            var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+            var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+            var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
             if (this._lastMti == -1)
             {
@@ -248,7 +254,7 @@ namespace FF12PCRNGHelper
 
             for (var i = 0; i < this._rVals.Length; i++)
             {
-                this._rVals[i] = new[] {rng.genrand(), (uint) rng.mti, rng.mt[rng.mti - 1]};
+                this._rVals[i] = new[] {rng.genrand(), (uint) rng.mti - 1, rng.mt[rng.mti - 1]};
             }
 
             if (mti >= this._lastMti)
@@ -317,9 +323,11 @@ namespace FF12PCRNGHelper
                 }
 
                 this.dataGridView2.Rows[i].Cells[5].Value = pString;
-                this.dataGridView2.Rows[i].Cells[6].Value = this._rVals[0][0];
-                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][1];
-                this.dataGridView2.Rows[i].Cells[8].Value = this._rVals[0][2];
+                this.dataGridView2.Rows[i].Cells[6].Value =
+                    this.numericGil.Value == 0 ? 0 : 1 + this._rVals[0][0] % this.numericGil.Value;
+                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][0];
+                this.dataGridView2.Rows[i].Cells[8].Value = this._rVals[0][1];
+                this.dataGridView2.Rows[i].Cells[9].Value = this._rVals[0][2];
                 if (i == this._foundIndex && this._movement > 0)
                 {
                     this.dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
@@ -335,7 +343,7 @@ namespace FF12PCRNGHelper
                 }
 
                 Array.Copy(this._rVals, 1, this._rVals, 0, this._rVals.Length - 1);
-                this._rVals[this._rVals.Length - 1] = new[] {rng.genrand(), (uint) rng.mti, rng.mt[rng.mti - 1]};
+                this._rVals[this._rVals.Length - 1] = new[] {rng.genrand(), (uint) rng.mti - 1, rng.mt[rng.mti - 1]};
             }
 
             if (this._movement > 0)
@@ -353,7 +361,7 @@ namespace FF12PCRNGHelper
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            if (_remoteMem == null)
+            if (RemoteMem == null)
             {
                 AttachProc();
             }
@@ -365,8 +373,8 @@ namespace FF12PCRNGHelper
                 }
                 catch
                 {
-                    _remoteMem.Dispose();
-                    _remoteMem = null;
+                    RemoteMem.Dispose();
+                    RemoteMem = null;
                 }
             }
 
@@ -568,8 +576,8 @@ namespace FF12PCRNGHelper
             try
             {
                 var rng = new RNG2002();
-                var mti = _remoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = _remoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
                 rng.loadState(mti, mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
@@ -613,6 +621,24 @@ namespace FF12PCRNGHelper
                     }
                 }
             });
+        }
+
+        private void ButtonRngInjection_Click(object sender, EventArgs e)
+        {
+            if (!RngInjectionForm.IsOpen)
+            {
+                this._rngInjectionForm = new RngInjectionForm(ref this.dataGridView2);
+                this._rngInjectionForm.Show(this);
+            }
+            else
+            {
+                if (this._rngInjectionForm?.WindowState == FormWindowState.Minimized)
+                {
+                    this._rngInjectionForm.WindowState = FormWindowState.Normal;
+                }
+
+                this._rngInjectionForm?.Activate();
+            }
         }
 
         public struct PSearch
