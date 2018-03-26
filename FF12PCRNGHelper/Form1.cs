@@ -61,9 +61,10 @@ namespace FF12PCRNGHelper
 
             //this.dataGridView1.Rows.Add();
             // Add check if ppl had higher size before this update to set it down for compatibility to avoid crashes.
-            if (Config.GridSize > 1248)
+            // Since we're caching 10 random values, max grid size is 2 * 624 - 10
+            if (Config.GridSize > 1238)
             {
-                Config.GridSize = 1248;
+                Config.GridSize = 1238;
             }
 
             this.dataGridView2.Rows.Add(Config.GridSize);
@@ -380,11 +381,25 @@ namespace FF12PCRNGHelper
 
         private void ForceUpdate()
         {
-            this._movement = -1;
-            var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-            var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
-            this._rng.LoadState(mti, in mt);
-            this.Generate();
+            if (RemoteMem == null)
+            {
+                return;
+            }
+
+            try
+            {
+                this._movement = -1;
+                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                this._rng.LoadState(mti, in mt);
+                this.Generate();
+            }
+            // Couldn't read from process, so we dispose.
+            catch (Win32Exception)
+            {
+                RemoteMem.Dispose();
+                RemoteMem = null;
+            }
         }
         /*
         private void Timer1_Tick(object sender, EventArgs e)
