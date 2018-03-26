@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace FF12PCRNGHelper
@@ -29,10 +31,6 @@ namespace FF12PCRNGHelper
             Rare
         }
 
-        public const int PunchAdvancement = 10;
-
-        public const int CureAdvancement = 1;
-
         internal static RemoteMemory RemoteMem;
 
         private static Color _defaultBackColor;
@@ -43,9 +41,11 @@ namespace FF12PCRNGHelper
 
         private static readonly Color SelectionHighlightBackColor = Color.DarkGreen;
 
+        private readonly RNG2002 _rng = new RNG2002();
+
         private int _foundIndex = -1;
 
-        private int _lastMti = -1;
+        private bool _lock;
 
         private int _movement;
 
@@ -60,12 +60,26 @@ namespace FF12PCRNGHelper
             this.InitializeComponent();
 
             //this.dataGridView1.Rows.Add();
+            // Add check if ppl had higher size before this update to set it down for compatibility to avoid crashes.
+            if (Config.GridSize > 1248)
+            {
+                Config.GridSize = 1248;
+            }
+
             this.dataGridView2.Rows.Add(Config.GridSize);
+
+            typeof(DataGridView).InvokeMember("DoubleBuffered",
+                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty, null, this.dataGridView2,
+                new object[] {true});
+
             _defaultBackColor = this.dataGridView2.DefaultCellStyle.BackColor;
             _defaultBackHighColor = this.dataGridView2.DefaultCellStyle.SelectionBackColor;
+
+            this.timer1.Interval = Config.RefreshInterval;
             this.timer1.Start();
         }
 
+        // TODO: Make searching better so it only generates the amount of random numbers needed for the current search and gets new every iteration instead of just dumping the whole thing.
         private int SearchPercentages(PSearch[] percentages)
         {
             try
@@ -74,7 +88,7 @@ namespace FF12PCRNGHelper
                 var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
                 var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
-                rng.loadState(mti, mt);
+                rng.LoadState(mti, in mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
 
                 for (var i = 0; i < this._rngDump.Length; i++)
@@ -164,7 +178,7 @@ namespace FF12PCRNGHelper
             return true;
         }
 
-        private static void AttachProc()
+        private void AttachProc()
         {
             if (RemoteMem != null)
             {
@@ -241,34 +255,6 @@ namespace FF12PCRNGHelper
 
         private void Generate()
         {
-            var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-            var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
-
-            if (this._lastMti == -1)
-            {
-                this._lastMti = mti;
-            }
-
-            var rng = new RNG2002();
-            rng.loadState(mti, mt);
-
-            for (var i = 0; i < this._rVals.Length; i++)
-            {
-                this._rVals[i] = new[] {rng.genrand(), (uint) rng.mti - 1, rng.mt[rng.mti - 1]};
-            }
-
-            if (mti >= this._lastMti)
-            {
-                this._movement = mti - this._lastMti;
-            }
-            else
-            {
-                var diffToMax = 624 - this._lastMti;
-                this._movement = mti + diffToMax;
-            }
-
-            this._lastMti = mti;
-
             if (this._foundIndex == 0)
             {
                 this.stepsToResult.Text = "You are at your search result!";
@@ -282,18 +268,16 @@ namespace FF12PCRNGHelper
                 this.stepsToResult.Text = string.Empty;
             }
 
-            /*
-            this.dataGridView1.Rows[0].Cells[0].Value = 0;
-            this.dataGridView1.Rows[0].Cells[1].Value = this._rVals[0][0] % 100;
-            this.dataGridView1.Rows[0].Cells[2].Value = this._rVals[0][0] < 0x1000000;
-            this.dataGridView1.Rows[0].Cells[3].Value =
-                GetStealType(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]);
-            this.dataGridView1.Rows[0].Cells[4].Value = string.Join(" + ",
-                GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
-            this.dataGridView1.Rows[0].Cells[5].Value = this._rVals[0][0];
-            this.dataGridView1.Rows[0].Cells[6].Value = this._rVals[0][1];
-            //this.dataGridView1.Rows[0].Cells[7].Value = this._rVals[0][2];
-            */
+            if (this._movement == 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < this._rVals.Length; i++)
+            {
+                var p = this._rng.Peek(i);
+                this._rVals[i] = new[] {p.value, (uint) p.mti, p.mt};
+            }
 
             var level = (uint) this.numericLevel.Value;
 
@@ -328,7 +312,7 @@ namespace FF12PCRNGHelper
                 this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][0];
                 this.dataGridView2.Rows[i].Cells[8].Value = this._rVals[0][1];
                 this.dataGridView2.Rows[i].Cells[9].Value = this._rVals[0][2];
-                if (i == this._foundIndex && this._movement > 0)
+                if (i == this._foundIndex)
                 {
                     this.dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
                     this.dataGridView2.Rows[i].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
@@ -338,29 +322,79 @@ namespace FF12PCRNGHelper
                         this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.BackColor = HighlightBackColor;
                         this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.SelectionBackColor =
                             SelectionHighlightBackColor;
-                        //this.foundIndex -= this.movement;
                     }
                 }
 
                 Array.Copy(this._rVals, 1, this._rVals, 0, this._rVals.Length - 1);
-                this._rVals[this._rVals.Length - 1] = new[] {rng.genrand(), (uint) rng.mti - 1, rng.mt[rng.mti - 1]};
+                var p = this._rng.Peek(this._rVals.Length + i);
+                this._rVals[this._rVals.Length - 1] = new[] {p.value, (uint) p.mti, p.mt};
             }
 
-            if (this._movement > 0)
+            if (this._foundIndex > -1)
             {
-                if (this._foundIndex > -1)
-                {
-                    this._foundIndex -= this._movement;
-                }
-                else
-                {
-                    this._foundIndex = -1;
-                }
+                this._foundIndex -= this._movement;
+            }
+            else
+            {
+                this._foundIndex = -1;
             }
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
+            if (this._lock)
+            {
+                return;
+            }
+
+            if (RemoteMem == null)
+            {
+                this.AttachProc();
+            }
+            else
+            {
+                try
+                {
+                    var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+                    var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+
+                    this._movement = this._rng.Sync(mti, in mt);
+
+                    // On load or rng injection, reload and reset.
+                    if (this._movement == -1)
+                    {
+                        this._rng.LoadState(mti, in mt);
+                        this.ResetGridHighlighting();
+                    }
+
+                    this.Generate();
+                }
+                // Couldn't read from process, so we dispose.
+                catch (Win32Exception)
+                {
+                    RemoteMem.Dispose();
+                    RemoteMem = null;
+                }
+            }
+        }
+
+        private void ForceUpdate()
+        {
+            this._movement = -1;
+            var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
+            var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+            this._rng.LoadState(mti, in mt);
+            this.Generate();
+        }
+        /*
+        private void Timer1_Tick(object sender, EventArgs e)
+        {
+            if (this._lock)
+            {
+                return;
+            }
+
+            this._lock = true;
             if (RemoteMem == null)
             {
                 AttachProc();
@@ -378,18 +412,10 @@ namespace FF12PCRNGHelper
                 }
             }
 
-            /*
-            else if (RemoteInvalid())
-            {
-                _remoteMem.Dispose();
-                _remoteMem = null;
-            }
-            else
-            {
-                this.Generate();
-            }
-            */
+            this._lock = false;
+            
         }
+        */
 
         private void ResetGridHighlighting()
         {
@@ -476,6 +502,7 @@ namespace FF12PCRNGHelper
                 {
                     this.dataGridView2.Rows.Clear();
                     this.dataGridView2.Rows.Add(Config.GridSize);
+                    this.ForceUpdate();
                 }
             }
         }
@@ -579,7 +606,7 @@ namespace FF12PCRNGHelper
                 var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
                 var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
 
-                rng.loadState(mti, mt);
+                rng.LoadState(mti, in mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
 
                 action.Invoke();

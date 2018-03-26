@@ -35,7 +35,7 @@ namespace FF12PCRNGHelper
                 this._timer.Interval = interval;
             }
 
-            if (int.TryParse(this.tbGridSize.Text, out var gridsize) && gridsize > 0)
+            if (int.TryParse(this.tbGridSize.Text, out var gridsize) && gridsize > 0 && gridsize <= 1248)
             {
                 Config.GridSize = gridsize;
             }
@@ -72,6 +72,10 @@ namespace FF12PCRNGHelper
             else if (tmp < 1)
             {
                 this.tbGridSize.Text = "1";
+            }
+            else if (tmp > 1248)
+            {
+                this.tbGridSize.Text = "1248";
             }
         }
 

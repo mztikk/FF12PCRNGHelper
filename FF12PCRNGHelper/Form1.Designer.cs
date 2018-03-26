@@ -66,6 +66,7 @@ namespace FF12PCRNGHelper
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
             this.gridRightClickMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericLevel)).BeginInit();
+            this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericGil)).BeginInit();
             this.SuspendLayout();
             // 
@@ -284,12 +285,13 @@ namespace FF12PCRNGHelper
             // menuStrip1
             // 
             this.menuStrip1.BackColor = System.Drawing.SystemColors.Control;
+            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.searchesToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(689, 24);
             this.menuStrip1.TabIndex = 22;
             this.menuStrip1.Text = "menuStrip1";
-            this.menuStrip1.Items.Add(this.searchesToolStripMenuItem);
             // 
             // searchesToolStripMenuItem
             // 
@@ -400,6 +402,8 @@ namespace FF12PCRNGHelper
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).EndInit();
             this.gridRightClickMenu.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.numericLevel)).EndInit();
+            this.menuStrip1.ResumeLayout(false);
+            this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericGil)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -441,4 +445,3 @@ namespace FF12PCRNGHelper
         private DataGridViewTextBoxColumn Column1;
     }
 }
-

@@ -47,6 +47,8 @@
    email: m-mat @ math.sci.hiroshima-u.ac.jp (remove space)
 */
 
+using System;
+
 namespace FF12PCRNGHelper
 {
     public class RNG2002
@@ -67,7 +69,7 @@ namespace FF12PCRNGHelper
 
         private const uint LOWER_MASK = 0x7fffffffU; /* least significant r bits */
 
-        private readonly uint[] mag01 = {0x0U, MATRIX_A}; //Moved out of below method.
+        private static readonly uint[] mag01 = {0x0U, MATRIX_A}; //Moved out of below method.
 
         public RNG2002(uint seed)
         {
@@ -80,9 +82,12 @@ namespace FF12PCRNGHelper
         {
         }
 
-        public uint[] mt { get; set; } = new uint[N]; /* the array for the state vector  */
+        public uint[] mt { get; } = new uint[N]; /* the array for the state vector  */
 
         public int mti { get; set; } = N + 1; /* mti==N+1 means mt[N] is not initialized */
+
+        // Hardcode buffer size to make it faster, max gridsize is now 624 * futureState.Length = 1248
+        public uint[][] FutureState { get; } = {new uint[N], new uint[N]};
 
         public uint Seed { get; set; }
 
@@ -112,40 +117,99 @@ namespace FF12PCRNGHelper
         /* generates a random number on [0,0xffffffff]-interval */
         public uint genrand() //genrand_int32
         {
-            uint y;
+            //uint y;
             //See above for what was moved out from here
 
             if (this.mti >= N)
             {
-                /* generate N words at one time */
+                /*
+                // generate N words at one time 
                 int kk;
 
-                if (this.mti == N + 1) /* if init_genrand() has not been called, */
+                if (this.mti == N + 1) // if init_genrand() has not been called,
                 {
-                    this.sgenrand(DEFAULT_SEED); /* a default initial seed is used */
+                    this.sgenrand(DEFAULT_SEED); // a default initial seed is used
                 }
 
                 for (kk = 0; kk < N - M; kk++)
                 {
                     y = (this.mt[kk] & UPPER_MASK) | (this.mt[kk + 1] & LOWER_MASK);
-                    this.mt[kk] = this.mt[kk + M] ^ (y >> 1) ^ this.mag01[y & 0x1UL];
+                    this.mt[kk] = this.mt[kk + M] ^ (y >> 1) ^ mag01[y & 0x1UL];
                 }
 
                 for (; kk < N - 1; kk++)
                 {
                     y = (this.mt[kk] & UPPER_MASK) | (this.mt[kk + 1] & LOWER_MASK);
-                    this.mt[kk] = this.mt[kk + (M - N)] ^ (y >> 1) ^ this.mag01[y & 0x1U];
+                    this.mt[kk] = this.mt[kk + (M - N)] ^ (y >> 1) ^ mag01[y & 0x1U];
                 }
 
                 y = (this.mt[N - 1] & UPPER_MASK) | (this.mt[0] & LOWER_MASK);
-                this.mt[N - 1] = this.mt[M - 1] ^ (y >> 1) ^ this.mag01[y & 0x1U];
-
+                this.mt[N - 1] = this.mt[M - 1] ^ (y >> 1) ^ mag01[y & 0x1U];
+                */
+                Twist(this.mt);
+                Array.Copy(this.mt, this.FutureState[0], N);
+                //this.futureState = (uint[]) this.mt.Clone();
+                Twist(this.FutureState[0]);
+                Array.Copy(this.FutureState[0], this.FutureState[1], N);
+                Twist(this.FutureState[1]);
                 this.mti = 0;
             }
 
+            /*
             y = this.mt[this.mti++];
 
-            /* Tempering */
+            // Tempering 
+            y ^= y >> 11;
+            y ^= (y << 7) & 0x9d2c5680U;
+            y ^= (y << 15) & 0xefc60000U;
+            y ^= y >> 18;
+
+            return y;
+            */
+
+            return Temper(this.mt[this.mti++]);
+        }
+
+        public RNGState Peek(int offset = 0)
+        {
+            var offsetMti = this.mti + offset;
+            var i = offsetMti / N;
+
+            if (i > 0)
+            {
+                var pmti = offsetMti % N;
+                var y = this.FutureState[i - 1][pmti];
+                return new RNGState(pmti, Temper(y), y);
+            }
+            else
+            {
+                var y = this.mt[offsetMti];
+                return new RNGState(offsetMti, Temper(y), y);
+            }
+        }
+
+        private static void Twist(uint[] state)
+        {
+            uint y;
+            int kk;
+            for (kk = 0; kk < N - M; kk++)
+            {
+                y = (state[kk] & UPPER_MASK) | (state[kk + 1] & LOWER_MASK);
+                state[kk] = state[kk + M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            }
+
+            for (; kk < N - 1; kk++)
+            {
+                y = (state[kk] & UPPER_MASK) | (state[kk + 1] & LOWER_MASK);
+                state[kk] = state[kk + (M - N)] ^ (y >> 1) ^ mag01[y & 0x1U];
+            }
+
+            y = (state[N - 1] & UPPER_MASK) | (state[0] & LOWER_MASK);
+            state[N - 1] = state[M - 1] ^ (y >> 1) ^ mag01[y & 0x1U];
+        }
+
+        private static uint Temper(uint y)
+        {
             y ^= y >> 11;
             y ^= (y << 7) & 0x9d2c5680U;
             y ^= (y << 15) & 0xefc60000U;
@@ -155,34 +219,52 @@ namespace FF12PCRNGHelper
         }
 
         /// <summary>
-        ///     Saves the state of the RNG
-        /// </summary>
-        /// <param name="rng"></param>
-        /// <returns>RNGState structure</returns>
-        public RNGState saveState()
-        {
-            return new RNGState {mti = this.mti, mt = this.mt.Clone() as uint[]};
-        }
-
-        /// <summary>
         ///     Loads the state of the RNG
         /// </summary>
-        /// <param name="inmti">Input mti</param>
-        /// <param name="inmt">Input mt</param>
-        public void loadState(int mti, uint[] mt)
+        /// <param name="loadMti">Input mti</param>
+        /// <param name="loadMt">Input mt</param>
+        public void LoadState(int loadMti, in uint[] loadMt)
         {
-            this.mti = mti;
-            mt.CopyTo(this.mt, 0);
+            this.mti = loadMti;
+            loadMt.CopyTo(this.mt, 0);
+            Array.Copy(this.mt, this.FutureState[0], this.mt.Length);
+            Twist(this.FutureState[0]);
+            Array.Copy(this.FutureState[0], this.FutureState[1], N);
+            Twist(this.FutureState[1]);
         }
 
-        /// <summary>
-        ///     Loads the state of the RNG
-        /// </summary>
-        /// <param name="inputState">Tuple<Input mti, Input mt, Input mag01></param>
-        public void loadState(RNGState inputState)
+        public int Sync(int syncMti, in uint[] syncMt)
         {
-            this.mti = inputState.mti;
-            inputState.mt.CopyTo(this.mt, 0);
+            if (this.mti == N + 1 || syncMti < 0)
+            {
+                return -1;
+            }
+
+            if (Compare.Equal(this.mt, syncMt))
+            {
+                var diff = syncMti - this.mti;
+                this.mti = syncMti;
+
+                return diff;
+            }
+
+            if (Compare.Equal(this.FutureState[0], syncMt))
+            {
+                var diff = syncMti + (N - this.mti);
+                this.LoadState(syncMti, in syncMt);
+
+                return diff;
+            }
+
+            if (Compare.Equal(this.FutureState[1], syncMt))
+            {
+                var diff = syncMti + (N - this.mti);
+                this.LoadState(syncMti, in syncMt);
+
+                return diff + 624;
+            }
+
+            return -1;
         }
 
         /// <summary>
@@ -199,6 +281,22 @@ namespace FF12PCRNGHelper
             }
 
             return rtn;
+        }
+
+        public struct RNGState
+        {
+            public uint mt;
+
+            public int mti;
+
+            public uint value;
+
+            public RNGState(int mti, uint value, uint mt)
+            {
+                this.mti = mti;
+                this.mt = mt;
+                this.value = value;
+            }
         }
     }
 }

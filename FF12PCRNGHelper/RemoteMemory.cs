@@ -35,8 +35,13 @@ namespace FF12PCRNGHelper
         /// <summary>
         ///     Determines whether or not the process is still valid and running.
         /// </summary>
-        public bool IsValid =>
-            !this.ProcessHandle.IsInvalid && !this.ProcessHandle.IsClosed && !this.NativeProcess.HasExited;
+        public bool IsValid
+        {
+            get
+            {
+                return !this.ProcessHandle.IsInvalid && !this.ProcessHandle.IsClosed && !this.NativeProcess.HasExited;
+            }
+        }
 
         /// <summary>
         ///     Native process
@@ -106,12 +111,24 @@ namespace FF12PCRNGHelper
         /// <summary>
         ///     The MainModule of the attached process.
         /// </summary>
-        public ProcessModule MainModule => this.NativeProcess.MainModule;
+        public ProcessModule MainModule
+        {
+            get
+            {
+                return this.NativeProcess.MainModule;
+            }
+        }
 
         /// <summary>
         ///     All modules of the attached process.
         /// </summary>
-        public ProcessModuleCollection Modules => this.NativeProcess.Modules;
+        public ProcessModuleCollection Modules
+        {
+            get
+            {
+                return this.NativeProcess.Modules;
+            }
+        }
 
         #endregion
 
