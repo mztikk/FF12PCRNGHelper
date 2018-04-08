@@ -281,6 +281,7 @@ namespace FF12PCRNGHelper
             0,
             0,
             0});
+            this.numericLevel.ValueChanged += new System.EventHandler(this.Numeric_ValueChanged);
             // 
             // menuStrip1
             // 
@@ -367,6 +368,7 @@ namespace FF12PCRNGHelper
             0,
             0,
             0});
+            this.numericGil.ValueChanged += new System.EventHandler(this.Numeric_ValueChanged);
             // 
             // label3
             // 

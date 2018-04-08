@@ -254,7 +254,7 @@ namespace FF12PCRNGHelper
             return rtn;
         }
 
-        private void Generate()
+        private void Generate(bool forceRefresh = false)
         {
             if (this._foundIndex == 0)
             {
@@ -269,7 +269,7 @@ namespace FF12PCRNGHelper
                 this.stepsToResult.Text = string.Empty;
             }
 
-            if (this._movement == 0)
+            if (this._movement == 0 && !forceRefresh)
             {
                 return;
             }
@@ -401,6 +401,7 @@ namespace FF12PCRNGHelper
                 RemoteMem = null;
             }
         }
+
         /*
         private void Timer1_Tick(object sender, EventArgs e)
         {
@@ -681,6 +682,11 @@ namespace FF12PCRNGHelper
 
                 this._rngInjectionForm?.Activate();
             }
+        }
+
+        private void Numeric_ValueChanged(object sender, EventArgs e)
+        {
+            this.Generate(true);
         }
 
         public struct PSearch
