@@ -16,6 +16,8 @@ namespace FF12PCRNGHelper
         // Do we even need something like 0,0,0? Rarest combination needed should be something like 0,80+,95+
         internal static int SearchDepth = 100000;
 
+        internal static bool PatchAutoPause = false;
+
         //internal static int WorkerAmount = 2;
 
         internal static void Save(string path = "FF12PCRNGHelper.xml")

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -116,7 +115,7 @@ namespace FF12PCRNGHelper
                 return;
             }
 
-            this.BackgroundWriteRng(t);
+            this.WriteRngAsync(t);
         }
 
         internal void WriteRng(Rng rng)
@@ -272,38 +271,32 @@ namespace FF12PCRNGHelper
                 return;
             }
 
-            this.BackgroundWriteRng(new[] {new Rng(rngType, indexType, i, v, r)});
+            this.WriteRngAsync(new[] {new Rng(rngType, indexType, i, v, r)});
         }
 
-        private void BackgroundWriteRng(Rng[] rngToWrite)
+        private async void WriteRngAsync(Rng[] rngToWrite)
         {
-            var bgw = new BackgroundWorker();
-            bgw.DoWork += (sender1, args) =>
-            {
-                var r = (Rng[]) args.Argument;
-                if (r.Length > 2)
-                {
-                    Parallel.ForEach(r, this.WriteRng);
-                }
-                else
-                {
-                    Array.ForEach(r, this.WriteRng);
-                }
-            };
-            bgw.RunWorkerCompleted += (sender1, args) =>
-            {
-                this.buttonInject.Enabled = true;
-                this.buttonDirectInject.Enabled = true;
-                this.pictureBox1.Enabled = false;
-                this.pictureBox1.Visible = false;
-            };
-
             this.buttonInject.Enabled = false;
             this.buttonDirectInject.Enabled = false;
             this.pictureBox1.Enabled = true;
             this.pictureBox1.Visible = true;
 
-            bgw.RunWorkerAsync(rngToWrite);
+            await Task.Run(() =>
+            {
+                if (rngToWrite.Length > 2)
+                {
+                    Parallel.ForEach(rngToWrite, this.WriteRng);
+                }
+                else
+                {
+                    Array.ForEach(rngToWrite, this.WriteRng);
+                }
+            });
+
+            this.buttonInject.Enabled = true;
+            this.buttonDirectInject.Enabled = true;
+            this.pictureBox1.Enabled = false;
+            this.pictureBox1.Visible = false;
         }
 
         private void RadioButtonGrid_CheckedChanged(object sender, EventArgs e)

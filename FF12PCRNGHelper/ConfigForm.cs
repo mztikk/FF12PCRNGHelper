@@ -19,6 +19,7 @@ namespace FF12PCRNGHelper
             this.tbInterval.Text = Config.RefreshInterval.ToString();
             this.tbGridSize.Text = Config.GridSize.ToString();
             this.tbSearchDepth.Text = Config.SearchDepth.ToString();
+            this.cbPatchAutoPause.Checked = Config.PatchAutoPause;
         }
 
         private void ButtonCancel_Click(object sender, EventArgs e)
@@ -43,6 +44,17 @@ namespace FF12PCRNGHelper
             if (int.TryParse(this.tbSearchDepth.Text, out var searchDepth) && searchDepth > 0)
             {
                 Config.SearchDepth = searchDepth;
+            }
+
+            if (this.cbPatchAutoPause.Checked)
+            {
+                Form1.AutoPause.Apply();
+                Config.PatchAutoPause = true;
+            }
+            else
+            {
+                Form1.AutoPause.Remove();
+                Config.PatchAutoPause = false;
             }
 
             Config.Save();

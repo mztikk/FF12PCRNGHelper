@@ -38,6 +38,7 @@
             this.buttonSave = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.cbPatchAutoPause = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -137,6 +138,19 @@
             this.toolTip1.InitialDelay = 250;
             this.toolTip1.ReshowDelay = 50;
             // 
+            // cbPatchAutoPause
+            // 
+            this.cbPatchAutoPause.AutoSize = true;
+            this.cbPatchAutoPause.Dock = System.Windows.Forms.DockStyle.Top;
+            this.cbPatchAutoPause.Location = new System.Drawing.Point(0, 114);
+            this.cbPatchAutoPause.Name = "cbPatchAutoPause";
+            this.cbPatchAutoPause.Padding = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.cbPatchAutoPause.Size = new System.Drawing.Size(284, 22);
+            this.cbPatchAutoPause.TabIndex = 10;
+            this.cbPatchAutoPause.Text = "Patch Auto Pause";
+            this.toolTip1.SetToolTip(this.cbPatchAutoPause, "Patch the auto pause function call. Enable to disable auto pause and vice versa.");
+            this.cbPatchAutoPause.UseVisualStyleBackColor = true;
+            // 
             // ConfigForm
             // 
             this.AcceptButton = this.buttonSave;
@@ -144,6 +158,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.buttonCancel;
             this.ClientSize = new System.Drawing.Size(284, 211);
+            this.Controls.Add(this.cbPatchAutoPause);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.buttonSave);
             this.Controls.Add(this.tbSearchDepth);
@@ -173,5 +188,6 @@
         private System.Windows.Forms.Button buttonSave;
         private System.Windows.Forms.Button buttonCancel;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.CheckBox cbPatchAutoPause;
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 
 namespace FF12PCRNGHelper
 {
@@ -52,8 +51,6 @@ namespace FF12PCRNGHelper
         ///     Handle to the process
         /// </summary>
         public readonly Handle ProcessHandle;
-
-        private byte[] _dumpedRegion;
 
         #endregion
 
@@ -134,92 +131,33 @@ namespace FF12PCRNGHelper
 
         #region Public Methods and Operators
 
-        /// <summary>
-        ///     Gets a byte array and mask from a string aob pattern/signature.
-        /// </summary>
-        /// <param name="pattern">
-        ///     The aob pattern.
-        /// </param>
-        /// <returns>
-        ///     Tuple with byte array and mask.
-        /// </returns>
-        public static (byte[], string) GetBytesAndMaskFromPattern(string pattern)
+        #region FF12TZA RNG
+
+        // Since we're only reading 625 * 4 bytes for mt and mti and nothing else, but that a lot, might aswell optimize for it instead of using a generic version
+        private const int NumBytesToRead = 625 * 4;
+
+        // Caching arrays to avoid reconstruction
+        private readonly uint[] _mt = new uint[624];
+
+        private readonly byte[] _rngBuffer = new byte[NumBytesToRead];
+
+        public (uint[], int) GetMtAndMti(IntPtr address)
         {
-            var split = pattern.Split(' ');
-            var bytes = new byte[split.Length];
-            var mask = new char[split.Length];
-            for (var i = 0; i < split.Length; i++)
+            if (!this.ProcessHandle.IsInvalid && !this.ProcessHandle.IsClosed && address != IntPtr.Zero)
             {
-                if (split[i][0] == '?' || split[i][1] == '?')
+                if (Kernel32.ReadProcessMemory(this.ProcessHandle, address, this._rngBuffer, NumBytesToRead,
+                        out var numBytesRead) && NumBytesToRead == numBytesRead)
                 {
-                    bytes[i] = 0;
-                    mask[i] = '?';
-                }
-                else
-                {
-                    bytes[i] = Convert.ToByte(new string(new[] {split[i][0], split[i][1]}), 16);
-                    mask[i] = 'x';
+                    Buffer.BlockCopy(this._rngBuffer, 0, this._mt, 0, NumBytesToRead - 4);
+
+                    return (this._mt, BitConverter.ToInt32(this._rngBuffer, NumBytesToRead - 4));
                 }
             }
 
-            return (bytes, new string(mask));
+            throw new Win32Exception($"Couldn't read mt and mti at 0x{address.ToString("X")}");
         }
 
-        /// <summary>
-        ///     Gets the byte array from a string aob pattern/signature.
-        /// </summary>
-        /// <param name="pattern">
-        ///     Pattern to get bytes from.
-        /// </param>
-        /// <returns>
-        ///     Bytes of the pattern.
-        /// </returns>
-        public static byte[] GetBytesFromPattern(string pattern)
-        {
-            var split = pattern.Split(' ');
-            var rtn = new byte[split.Length];
-            for (var i = 0; i < split.Length; i++)
-            {
-                if (split[i][0] == '?' || split[i][1] == '?')
-                {
-                    rtn[i] = 0;
-                }
-                else
-                {
-                    rtn[i] = Convert.ToByte(new string(new[] {split[i][0], split[i][1]}), 16);
-                }
-            }
-
-            return rtn;
-        }
-
-        /// <summary>
-        ///     Gets a mask from a string aob pattern/signature.
-        /// </summary>
-        /// <param name="pattern">
-        ///     Pattern to get mask from.
-        /// </param>
-        /// <returns>
-        ///     Mask of the pattern.
-        /// </returns>
-        public static string GetMaskFromPattern(string pattern)
-        {
-            var split = pattern.Split(' ');
-            var rtn = new char[split.Length];
-            for (var i = 0; i < split.Length; i++)
-            {
-                if (split[i][0] == '?' || split[i][1] == '?')
-                {
-                    rtn[i] = '?';
-                }
-                else
-                {
-                    rtn[i] = 'x';
-                }
-            }
-
-            return new string(rtn);
-        }
+        #endregion
 
         /// <summary>
         ///     Determines whether the specified process is 64bit or not.
@@ -303,281 +241,6 @@ namespace FF12PCRNGHelper
         }
 
         /// <summary>
-        ///     Finds the address of the specified pattern + mask in the main module.
-        /// </summary>
-        /// <param name="btPattern">
-        ///     Byte pattern to search for.
-        /// </param>
-        /// <param name="strMask">
-        ///     Mask to check.
-        /// </param>
-        /// <param name="nOffset">
-        ///     Offset to add to the address.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPattern(byte[] btPattern, string strMask, int nOffset)
-        {
-            return this.FindPatternInModule(btPattern, strMask, nOffset, this.MainModule);
-        }
-
-        /// <summary>
-        ///     Finds the address of the specified pattern in the main module.
-        /// </summary>
-        /// <param name="strPattern">
-        ///     Pattern to search for.
-        /// </param>
-        /// <param name="nOffset">
-        ///     Offset to add to the address.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPattern(string strPattern, int nOffset)
-        {
-            return this.FindPatternInModule(strPattern, nOffset, this.MainModule);
-        }
-
-        /// <summary>
-        ///     Finds the address of the specified pattern in the main module.
-        /// </summary>
-        /// <param name="dwPattern">
-        ///     Pattern to search for.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPattern(StringPattern dwPattern)
-        {
-            return this.FindPatternInModule(dwPattern, this.MainModule);
-        }
-
-        /// <summary>
-        ///     Finds the address of the specified pattern + mask in the module.
-        /// </summary>
-        /// <param name="btPattern">
-        ///     Byte pattern to search for.
-        /// </param>
-        /// <param name="strMask">
-        ///     Mask to check.
-        /// </param>
-        /// <param name="nOffset">
-        ///     Offset to add to the address.
-        /// </param>
-        /// <param name="procModule">
-        ///     ProcessModule to search through.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPatternInModule(byte[] btPattern, string strMask, int nOffset, ProcessModule procModule)
-        {
-            if (strMask.Length != btPattern.Length || btPattern.Length < 1)
-            {
-                throw new ArgumentException("length does not match");
-            }
-
-            try
-            {
-                var firstIndex = strMask.IndexOf('x');
-                var first = btPattern[firstIndex];
-                if (!this.DumpMemory(procModule.BaseAddress, procModule.ModuleMemorySize))
-                {
-                    return IntPtr.Zero;
-                }
-
-                for (var i = 0; i < this._dumpedRegion.Length - btPattern.Length; i++)
-                {
-                    if (this._dumpedRegion[i + firstIndex] != first)
-                    {
-                        continue;
-                    }
-
-                    if (this.CheckMask(i, btPattern, strMask))
-                    {
-                        return new IntPtr(procModule.BaseAddress.ToInt64()) + i + nOffset;
-                    }
-                }
-
-                return IntPtr.Zero;
-            }
-            catch (Exception)
-            {
-                return IntPtr.Zero;
-            }
-            finally
-            {
-                this._dumpedRegion = null;
-            }
-        }
-
-        /// <summary>
-        ///     Finds the address of the specified pattern in the module.
-        /// </summary>
-        /// <param name="strPattern">
-        ///     Pattern to search for.
-        /// </param>
-        /// <param name="nOffset">
-        ///     Offset to add to the address.
-        /// </param>
-        /// <param name="procModule">
-        ///     ProcessModule to search through.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPatternInModule(string strPattern, int nOffset, ProcessModule procModule)
-        {
-            var (bytes, mask) = GetBytesAndMaskFromPattern(strPattern);
-            return this.FindPatternInModule(bytes, mask, nOffset, procModule);
-        }
-
-        /// <summary>
-        ///     Finds the address of the specified pattern in the module.
-        /// </summary>
-        /// <param name="dwPattern">
-        ///     Pattern to search for.
-        /// </param>
-        /// <param name="procModule">
-        ///     ProcessModule to search through.
-        /// </param>
-        /// <returns>
-        ///     Address where the pattern was found if successful, otherwise IntPtr.Zero
-        /// </returns>
-        public IntPtr FindPatternInModule(StringPattern dwPattern, ProcessModule procModule)
-        {
-            var (bytes, mask) = GetBytesAndMaskFromPattern(dwPattern.Pattern);
-            return this.FindPatternInModule(bytes, mask, dwPattern.Offset, procModule);
-        }
-
-        /// <summary>
-        ///     Reads the value of a type in the remote process memory.
-        /// </summary>
-        /// <typeparam name="T">
-        ///     Type of the value.
-        /// </typeparam>
-        /// <param name="address">
-        ///     Address of the value.
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        /// <returns>
-        ///     The value.
-        /// </returns>
-        public T Read<T>(IntPtr address, bool relative = false)
-        {
-            int size;
-            if (typeof(T) == typeof(IntPtr))
-            {
-                size = this.Both64 ? 8 : 4;
-            }
-            else
-            {
-                size = MarshalType<T>.Size;
-            }
-
-            return MarshalType<T>.ByteArrayToObject(this.ReadBytes(address, size, relative));
-        }
-
-        /// <summary>
-        ///     Reads an array of a type in the remote process memory.
-        /// </summary>
-        /// <typeparam name="T">
-        ///     Type of the values.
-        /// </typeparam>
-        /// <param name="address">
-        ///     Address of the values.
-        /// </param>
-        /// <param name="count">
-        ///     Array size.
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        /// <returns>
-        ///     Array filled with values.
-        /// </returns>
-        public T[] Read<T>(IntPtr address, int count, bool relative = false)
-        {
-            var type = typeof(T);
-            var array = new T[count];
-
-            int size;
-            if (type == typeof(IntPtr))
-            {
-                size = this.Both64 ? 8 : 4;
-            }
-            else
-            {
-                size = MarshalType<T>.Size;
-            }
-
-            var bytes = this.ReadBytes(address, size * count, relative);
-
-            if (type == typeof(byte))
-            {
-                Buffer.BlockCopy(bytes, 0, array, 0, count);
-            }
-            else
-            {
-                for (var i = 0; i < count; i++)
-                {
-                    array[i] = MarshalType<T>.ByteArrayToObject(bytes, size * i);
-                }
-            }
-
-            return array;
-        }
-
-        /// <summary>
-        ///     Reads a string with the specified encoding in the remote process memory.
-        /// </summary>
-        /// <param name="address">
-        ///     Address of the values.
-        /// </param>
-        /// <param name="encoding">
-        ///     Encoding to use.
-        /// </param>
-        /// <param name="maxLength">
-        ///     Maximum length of the string(bytes to be read)
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        /// <returns>
-        ///     String at the address
-        /// </returns>
-        public string ReadString(IntPtr address, Encoding encoding, int maxLength = 512, bool relative = false)
-        {
-            var data = encoding.GetString(this.ReadBytes(address, maxLength, relative));
-            var eosPos = data.IndexOf('\0');
-
-            return eosPos == -1 ? data : data.Substring(0, eosPos);
-        }
-
-        /// <summary>
-        ///     Reads a string with Encoding.UTF8 in the remote process memory.
-        /// </summary>
-        /// <param name="address">
-        ///     Address of the values.
-        /// </param>
-        /// <param name="maxLength">
-        ///     Maximum length of the string(bytes to be read)
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        /// <returns>
-        ///     String at the address
-        /// </returns>
-        public string ReadString(IntPtr address, int maxLength = 512, bool relative = false)
-        {
-            return this.ReadString(address, Encoding.UTF8, maxLength, relative);
-        }
-
-        /// <summary>
         ///     Converts the relative address to an absolute one.
         /// </summary>
         /// <param name="address">
@@ -641,43 +304,6 @@ namespace FF12PCRNGHelper
             this.WriteBytes(address, bytes, relative);
         }
 
-        /// <summary>
-        ///     Writes a string with the specified encoding in the remote process memory.
-        /// </summary>
-        /// <param name="address">
-        ///     Address to write at.
-        /// </param>
-        /// <param name="text">
-        ///     String value to be written.
-        /// </param>
-        /// <param name="encoding">
-        ///     Encoding to use.
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        public void WriteString(IntPtr address, string text, Encoding encoding, bool relative = false)
-        {
-            this.WriteBytes(address, encoding.GetBytes(text + '\0'), relative);
-        }
-
-        /// <summary>
-        ///     Writes a string with Encoding.UTF8 in the remote process memory.
-        /// </summary>
-        /// <param name="address">
-        ///     Address to write at.
-        /// </param>
-        /// <param name="text">
-        ///     String value to be written.
-        /// </param>
-        /// <param name="relative">
-        ///     Address is relative to the main module.
-        /// </param>
-        public void WriteString(IntPtr address, string text, bool relative = false)
-        {
-            this.WriteString(address, text, Encoding.UTF8, relative);
-        }
-
         #endregion
 
         #region Methods
@@ -717,24 +343,6 @@ namespace FF12PCRNGHelper
             }
         }
 
-        private bool CheckMask(int index, byte[] btPattern, string strMask)
-        {
-            for (var i = 0; i < btPattern.Length; i++)
-            {
-                if (strMask[i] == '?')
-                {
-                    continue;
-                }
-
-                if (strMask[i] == 'x' && btPattern[i] != this._dumpedRegion[index + i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private void Dispose(bool disposing)
         {
             this.ReleaseUnmanagedResources();
@@ -743,32 +351,6 @@ namespace FF12PCRNGHelper
                 this.NativeProcess?.Dispose();
                 this.ProcessHandle?.Dispose();
             }
-        }
-
-        private bool DumpMemory(IntPtr startAddress, int size)
-        {
-            try
-            {
-                if (this.NativeProcess == null || this.NativeProcess.HasExited || size == 0)
-                {
-                    return false;
-                }
-
-                this._dumpedRegion = new byte[size];
-
-                this._dumpedRegion = this.ReadBytes(startAddress, size);
-
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        private byte[] ReadBytes(IntPtr address, int count, bool relative = false)
-        {
-            return ReadBytes(this.ProcessHandle, relative ? this.ToAbsolute(address) : address, count);
         }
 
         private void ReleaseUnmanagedResources()

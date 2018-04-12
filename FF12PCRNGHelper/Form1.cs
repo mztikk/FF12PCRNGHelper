@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
+using FF12PCRNGHelper.Patching;
 
 namespace FF12PCRNGHelper
 {
@@ -55,6 +56,8 @@ namespace FF12PCRNGHelper
 
         private uint[][] _rVals = new uint[10][];
 
+        internal static BytePatch AutoPause = new AutoPause();
+
         public Form1()
         {
             this.InitializeComponent();
@@ -86,8 +89,7 @@ namespace FF12PCRNGHelper
             try
             {
                 var rng = new RNG2002();
-                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
 
                 rng.LoadState(mti, in mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
@@ -179,26 +181,27 @@ namespace FF12PCRNGHelper
             return true;
         }
 
-        private void AttachProc()
+        private bool AttachProc()
         {
             if (RemoteMem != null)
             {
-                return;
+                return false;
             }
 
             var procs = Process.GetProcessesByName("FFXII_TZA");
             if (!procs.Any())
             {
-                return;
+                return false;
             }
 
             var proc = procs.Single();
             if (proc.HasExited)
             {
-                return;
+                return false;
             }
 
             RemoteMem = new RemoteMemory(proc);
+            return true;
         }
 
         // Replaced by try/catch for better performance, handle validity and Process.HasExited calls are costly it seems.
@@ -350,14 +353,19 @@ namespace FF12PCRNGHelper
 
             if (RemoteMem == null)
             {
-                this.AttachProc();
+                if (this.AttachProc())
+                {
+                    if (Config.PatchAutoPause)
+                    {
+                        AutoPause.Apply();
+                    }
+                }
             }
             else
             {
                 try
                 {
-                    var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-                    var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                    var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
 
                     this._movement = this._rng.Sync(mti, in mt);
 
@@ -389,8 +397,7 @@ namespace FF12PCRNGHelper
             try
             {
                 this._movement = -1;
-                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
                 this._rng.LoadState(mti, in mt);
                 this.Generate();
             }
@@ -619,8 +626,7 @@ namespace FF12PCRNGHelper
             try
             {
                 var rng = new RNG2002();
-                var mti = RemoteMem.Read<int>(MemoryData.MtiAddress);
-                var mt = RemoteMem.Read<uint>(MemoryData.MtAddress, 624);
+                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
 
                 rng.LoadState(mti, in mt);
                 this._rngDump = rng.Dump(Config.SearchDepth);
