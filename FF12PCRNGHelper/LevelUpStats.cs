@@ -122,7 +122,7 @@
 
         public static uint HpMod(uint level)
         {
-            if (level == 12)
+            if (level == 12 || level == 90 || level == 95)
             {
                 return 20 * HpMinBonus(level) - 1;
             }

@@ -42,6 +42,8 @@ namespace FF12PCRNGHelper
 
         private static readonly Color SelectionHighlightBackColor = Color.DarkGreen;
 
+        internal static BytePatch AutoPause = new AutoPause();
+
         private readonly RNG2002 _rng = new RNG2002();
 
         private int _foundIndex = -1;
@@ -55,8 +57,6 @@ namespace FF12PCRNGHelper
         private RngInjectionForm _rngInjectionForm;
 
         private uint[][] _rVals = new uint[10][];
-
-        internal static BytePatch AutoPause = new AutoPause();
 
         public Form1()
         {

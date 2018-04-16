@@ -4,6 +4,9 @@ namespace FF12PCRNGHelper.Patching
 {
     public abstract class BytePatch
     {
+        // ReSharper disable once InconsistentNaming
+        public const byte NOP = 0x90;
+
         protected abstract byte[] OriginalBytes { get; set; }
 
         protected abstract byte[] BytesToPatch { get; set; }
