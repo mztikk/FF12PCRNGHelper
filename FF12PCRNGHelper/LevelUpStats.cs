@@ -70,6 +70,11 @@
             return value % MpMod(level) / 100;
         }
 
+        public static float MpRandF(uint level, uint value)
+        {
+            return value % MpMod(level) / 100.0f;
+        }
+
         public static uint MpMod(uint level)
         {
             return MpMinBonus(level) * 100;
@@ -120,9 +125,14 @@
             return value % HpMod(level) / 100;
         }
 
+        public static float HpRandF(uint level, uint value)
+        {
+            return value % HpMod(level) / 100.0f;
+        }
+
         public static uint HpMod(uint level)
         {
-            if (level == 12 || level == 90 || level == 95)
+            if (level == 12 || level == 45 || level == 53 || level == 66 || level == 69 || level == 90 || level == 95)
             {
                 return 20 * HpMinBonus(level) - 1;
             }
