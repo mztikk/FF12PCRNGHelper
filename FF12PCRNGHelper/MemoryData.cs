@@ -8,7 +8,7 @@ namespace FF12PCRNGHelper
         // If its not, maybe look into rebasing in AttachProc()
         internal static IntPtr BaseAddress = new IntPtr(0x120000);
 
-        internal static IntPtr MtiAddress = BaseAddress + 0x2D721F0;
+        internal static IntPtr MtiAddress = BaseAddress + 0x2D94230;
 
         internal static int MtSize = 624;
 
