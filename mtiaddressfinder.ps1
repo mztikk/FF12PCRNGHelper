@@ -9,4 +9,4 @@ $relative = $foundSig - $baseaddress
 $moveaddress = [int](memread $FFXII_PROCNAME $foundSig "int")
 $mtiaddress = $relative + $moveaddress + 4
 
-Write-Output $mtiaddress.ToString("X4")
+Write-Output "0x$($mtiaddress.ToString("X4"))"
