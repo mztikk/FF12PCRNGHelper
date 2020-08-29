@@ -3,7 +3,7 @@ $MTI_OFFSET = 2;
 
 $FFXII_PROCNAME = "FFXII_TZA"
 
-$foundSig = [long]("0x" + (sigscan $FFXII_PROCNAME $MTI_SIG $MTI_OFFSET))
+$foundSig = [long](sigscan $FFXII_PROCNAME $MTI_SIG $MTI_OFFSET)
 $baseaddress = [long](baseaddress $FFXII_PROCNAME)
 $relative = $foundSig - $baseaddress
 $moveaddress = [int](memread $FFXII_PROCNAME $foundSig "int")
