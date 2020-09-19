@@ -708,9 +708,11 @@ namespace FF12PCRNGHelper
             }
         }
 
+        const string tbSearchPlaceholder = "Percentage search";
+
         private void tbSearch_Enter(object sender, EventArgs e)
         {
-            if (tbSearch.Text == "Percentage search")
+            if (tbSearch.Text == tbSearchPlaceholder)
             {
                 tbSearch.Text = "";
                 tbSearch.ForeColor = Color.White;
@@ -721,7 +723,7 @@ namespace FF12PCRNGHelper
         {
             if (tbSearch.Text.Trim() == "")
             {
-                tbSearch.Text = "Percentage search";
+                tbSearch.Text = tbSearchPlaceholder;
                 tbSearch.ForeColor = Color.FromArgb(142, 142, 147);
             }
         }
