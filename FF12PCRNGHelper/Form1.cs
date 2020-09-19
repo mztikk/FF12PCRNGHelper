@@ -61,7 +61,7 @@ namespace FF12PCRNGHelper
         public Form1()
         {
             this.InitializeComponent();
-
+            tbSearch_Leave(null, null);
             //this.dataGridView1.Rows.Add();
             // Add check if ppl had higher size before this update to set it down for compatibility to avoid crashes.
             // Since we're caching 10 random values, max grid size is 2 * 624 - 10
@@ -705,6 +705,26 @@ namespace FF12PCRNGHelper
             {
                 this.Percentage = percentage;
                 this.CompareType = compareType;
+            }
+        }
+
+        const string tbSearchPlaceholder = "Percentage search";
+
+        private void tbSearch_Enter(object sender, EventArgs e)
+        {
+            if (tbSearch.Text == tbSearchPlaceholder)
+            {
+                tbSearch.Text = "";
+                tbSearch.ForeColor = Color.White;
+            }
+        }
+
+        private void tbSearch_Leave(object sender, EventArgs e)
+        {
+            if (tbSearch.Text.Trim() == "")
+            {
+                tbSearch.Text = tbSearchPlaceholder;
+                tbSearch.ForeColor = Color.FromArgb(142, 142, 147);
             }
         }
     }

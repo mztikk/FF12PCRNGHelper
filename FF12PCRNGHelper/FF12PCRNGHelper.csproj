@@ -150,5 +150,11 @@
   <ItemGroup>
     <None Include="Resources\image_loading.gif" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\icon.ico" />
+    <Content Include="Resources\injection.png" />
+    <Content Include="Resources\search.png" />
+    <Content Include="Resources\settings.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
