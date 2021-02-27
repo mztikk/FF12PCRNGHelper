@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using FF12PCRNGHelper.Patching;
+using RFDown.Windows.Memory.Exceptions;
 
 namespace FF12PCRNGHelper
 {
@@ -32,7 +33,7 @@ namespace FF12PCRNGHelper
             Rare
         }
 
-        internal static RemoteMemory RemoteMem;
+        internal static ZodiacMemory ZodiacMemory;
 
         private static Color _defaultBackColor;
 
@@ -60,7 +61,7 @@ namespace FF12PCRNGHelper
 
         public Form1()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             tbSearch_Leave(null, null);
             //this.dataGridView1.Rows.Add();
             // Add check if ppl had higher size before this update to set it down for compatibility to avoid crashes.
@@ -70,17 +71,17 @@ namespace FF12PCRNGHelper
                 Config.GridSize = 1238;
             }
 
-            this.dataGridView2.Rows.Add(Config.GridSize);
+            dataGridView2.Rows.Add(Config.GridSize);
 
             typeof(DataGridView).InvokeMember("DoubleBuffered",
-                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty, null, this.dataGridView2,
-                new object[] {true});
+                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty, null, dataGridView2,
+                new object[] { true });
 
-            _defaultBackColor = this.dataGridView2.DefaultCellStyle.BackColor;
-            _defaultBackHighColor = this.dataGridView2.DefaultCellStyle.SelectionBackColor;
+            _defaultBackColor = dataGridView2.DefaultCellStyle.BackColor;
+            _defaultBackHighColor = dataGridView2.DefaultCellStyle.SelectionBackColor;
 
-            this.timer1.Interval = Config.RefreshInterval;
-            this.timer1.Start();
+            timer1.Interval = Config.RefreshInterval;
+            timer1.Start();
         }
 
         // TODO: Make searching better so it only generates the amount of random numbers needed for the current search and gets new every iteration instead of just dumping the whole thing.
@@ -89,14 +90,14 @@ namespace FF12PCRNGHelper
             try
             {
                 var rng = new RNG2002();
-                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
+                (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
 
                 rng.LoadState(mti, in mt);
-                this._rngDump = rng.Dump(Config.SearchDepth);
+                _rngDump = rng.Dump(Config.SearchDepth);
 
-                for (var i = 0; i < this._rngDump.Length; i++)
+                for (int i = 0; i < _rngDump.Length; i++)
                 {
-                    var pVal = this._rngDump[i] % 100;
+                    uint pVal = _rngDump[i] % 100;
                     switch (percentages[0].CompareType)
                     {
                         case CompareType.Equal:
@@ -124,7 +125,7 @@ namespace FF12PCRNGHelper
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    if (this.SearchDump(percentages, i))
+                    if (SearchDump(percentages, i))
                     {
                         return i;
                     }
@@ -139,7 +140,7 @@ namespace FF12PCRNGHelper
             }
             finally
             {
-                this._rngDump = Array.Empty<uint>();
+                _rngDump = Array.Empty<uint>();
             }
 
             return -1;
@@ -147,9 +148,9 @@ namespace FF12PCRNGHelper
 
         private bool SearchDump(PSearch[] percentages, int index)
         {
-            for (var i = 0; i < percentages.Length; i++)
+            for (int i = 0; i < percentages.Length; i++)
             {
-                var pVal = this._rngDump[index + i] % 100;
+                uint pVal = _rngDump[index + i] % 100;
                 switch (percentages[i].CompareType)
                 {
                     case CompareType.Equal:
@@ -183,32 +184,25 @@ namespace FF12PCRNGHelper
 
         private bool AttachProc()
         {
-            if (RemoteMem != null)
+            if (ZodiacMemory != null)
             {
                 return false;
             }
 
-            var procs = Process.GetProcessesByName("FFXII_TZA");
+            Process[] procs = Process.GetProcessesByName("FFXII_TZA");
             if (!procs.Any())
             {
                 return false;
             }
 
-            var proc = procs.Single();
+            Process proc = procs.Single();
             if (proc.HasExited)
             {
                 return false;
             }
 
-            RemoteMem = new RemoteMemory(proc);
+            ZodiacMemory = new ZodiacMemory(proc);
             return true;
-        }
-
-        // Replaced by try/catch for better performance, handle validity and Process.HasExited calls are costly it seems.
-        // Need to look into that some time to maybe optimize it.
-        private static bool RemoteInvalid()
-        {
-            return RemoteMem == null || !RemoteMem.IsValid;
         }
 
         private static StealType GetStealType(uint rVal1, uint rVal2, uint rVal3)
@@ -259,43 +253,43 @@ namespace FF12PCRNGHelper
 
         private void Generate(bool forceRefresh = false)
         {
-            if (this._foundIndex == 0)
+            if (_foundIndex == 0)
             {
-                this.stepsToResult.Text = "You are at your search result!";
+                stepsToResult.Text = "You are at your search result!";
             }
-            else if (this._foundIndex > 0)
+            else if (_foundIndex > 0)
             {
-                this.stepsToResult.Text = "Advances to search result: " + this._foundIndex;
+                stepsToResult.Text = "Advances to search result: " + _foundIndex;
             }
             else
             {
-                this.stepsToResult.Text = string.Empty;
+                stepsToResult.Text = string.Empty;
             }
 
-            if (this._movement == 0 && !forceRefresh)
+            if (_movement == 0 && !forceRefresh)
             {
                 return;
             }
 
-            for (var i = 0; i < this._rVals.Length; i++)
+            for (int i = 0; i < _rVals.Length; i++)
             {
-                var p = this._rng.Peek(i);
-                this._rVals[i] = new[] {p.value, (uint) p.mti, p.mt};
+                RNG2002.RNGState p = _rng.Peek(i);
+                _rVals[i] = new[] { p.value, (uint)p.mti, p.mt };
             }
 
-            var level = (uint) this.numericLevel.Value;
+            uint level = (uint)numericLevel.Value;
 
-            for (var i = 0; i < this.dataGridView2.RowCount; i++)
+            for (int i = 0; i < dataGridView2.RowCount; i++)
             {
-                this.dataGridView2.Rows[i].Cells[0].Value = i;
-                this.dataGridView2.Rows[i].Cells[1].Value = this._rVals[0][0] % 100;
-                this.dataGridView2.Rows[i].Cells[2].Value = this._rVals[0][0] < 0x1000000;
-                this.dataGridView2.Rows[i].Cells[3].Value =
-                    GetStealType(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]);
-                this.dataGridView2.Rows[i].Cells[4].Value = string.Join(" + ",
-                    GetStealTypeCuffs(this._rVals[0][0], this._rVals[1][0], this._rVals[2][0]));
+                dataGridView2.Rows[i].Cells[0].Value = i;
+                dataGridView2.Rows[i].Cells[1].Value = _rVals[0][0] % 100;
+                dataGridView2.Rows[i].Cells[2].Value = _rVals[0][0] < 0x1000000;
+                dataGridView2.Rows[i].Cells[3].Value =
+                    GetStealType(_rVals[0][0], _rVals[1][0], _rVals[2][0]);
+                dataGridView2.Rows[i].Cells[4].Value = string.Join(" + ",
+                    GetStealTypeCuffs(_rVals[0][0], _rVals[1][0], _rVals[2][0]));
 
-                var pAmount = LevelUpStats.PerfectHpMpCount(level, ref this._rVals);
+                int pAmount = LevelUpStats.PerfectHpMpCount(level, ref _rVals);
                 string pString;
                 if (pAmount <= 0)
                 {
@@ -310,50 +304,50 @@ namespace FF12PCRNGHelper
                     pString = "True " + pAmount;
                 }
 
-                this.dataGridView2.Rows[i].Cells[5].Value = pString;
-                this.dataGridView2.Rows[i].Cells[6].Value =
-                    this.numericGil.Value == 0 ? 0 : 1 + this._rVals[0][0] % this.numericGil.Value;
-                this.dataGridView2.Rows[i].Cells[7].Value = this._rVals[0][0];
-                this.dataGridView2.Rows[i].Cells[8].Value = this._rVals[0][1];
-                this.dataGridView2.Rows[i].Cells[9].Value = this._rVals[0][2];
-                if (i == this._foundIndex)
+                dataGridView2.Rows[i].Cells[5].Value = pString;
+                dataGridView2.Rows[i].Cells[6].Value =
+                    numericGil.Value == 0 ? 0 : 1 + _rVals[0][0] % numericGil.Value;
+                dataGridView2.Rows[i].Cells[7].Value = _rVals[0][0];
+                dataGridView2.Rows[i].Cells[8].Value = _rVals[0][1];
+                dataGridView2.Rows[i].Cells[9].Value = _rVals[0][2];
+                if (i == _foundIndex)
                 {
-                    this.dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
-                    this.dataGridView2.Rows[i].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
+                    dataGridView2.Rows[i].DefaultCellStyle.BackColor = _defaultBackColor;
+                    dataGridView2.Rows[i].DefaultCellStyle.SelectionBackColor = _defaultBackHighColor;
 
-                    if (this._movement <= i)
+                    if (_movement <= i)
                     {
-                        this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.BackColor = HighlightBackColor;
-                        this.dataGridView2.Rows[i - this._movement].DefaultCellStyle.SelectionBackColor =
+                        dataGridView2.Rows[i - _movement].DefaultCellStyle.BackColor = HighlightBackColor;
+                        dataGridView2.Rows[i - _movement].DefaultCellStyle.SelectionBackColor =
                             SelectionHighlightBackColor;
                     }
                 }
 
-                Array.Copy(this._rVals, 1, this._rVals, 0, this._rVals.Length - 1);
-                var p = this._rng.Peek(this._rVals.Length + i);
-                this._rVals[this._rVals.Length - 1] = new[] {p.value, (uint) p.mti, p.mt};
+                Array.Copy(_rVals, 1, _rVals, 0, _rVals.Length - 1);
+                RNG2002.RNGState p = _rng.Peek(_rVals.Length + i);
+                _rVals[_rVals.Length - 1] = new[] { p.value, (uint)p.mti, p.mt };
             }
 
-            if (this._foundIndex > -1)
+            if (_foundIndex > -1)
             {
-                this._foundIndex -= this._movement;
+                _foundIndex -= _movement;
             }
             else
             {
-                this._foundIndex = -1;
+                _foundIndex = -1;
             }
         }
 
         private void Timer1_Tick(object sender, EventArgs e)
         {
-            if (this._lock)
+            if (_lock)
             {
                 return;
             }
 
-            if (RemoteMem == null)
+            if (ZodiacMemory == null)
             {
-                if (this.AttachProc())
+                if (AttachProc())
                 {
                     if (Config.PatchAutoPause)
                     {
@@ -365,47 +359,47 @@ namespace FF12PCRNGHelper
             {
                 try
                 {
-                    var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
+                    (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
 
-                    this._movement = this._rng.Sync(mti, in mt);
+                    _movement = _rng.Sync(mti, in mt);
 
                     // On load or rng injection, reload and reset.
-                    if (this._movement == -1)
+                    if (_movement == -1)
                     {
-                        this._rng.LoadState(mti, in mt);
-                        this.ResetGridHighlighting();
+                        _rng.LoadState(mti, in mt);
+                        ResetGridHighlighting();
                     }
 
-                    this.Generate();
+                    Generate();
                 }
                 // Couldn't read from process, so we dispose.
-                catch (Win32Exception)
+                catch (ReadMemoryException)
                 {
-                    RemoteMem.Dispose();
-                    RemoteMem = null;
+                    ZodiacMemory.Dispose();
+                    ZodiacMemory = null;
                 }
             }
         }
 
         private void ForceUpdate()
         {
-            if (RemoteMem == null)
+            if (ZodiacMemory == null)
             {
                 return;
             }
 
             try
             {
-                this._movement = -1;
-                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
-                this._rng.LoadState(mti, in mt);
-                this.Generate();
+                _movement = -1;
+                (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
+                _rng.LoadState(mti, in mt);
+                Generate();
             }
             // Couldn't read from process, so we dispose.
             catch (Win32Exception)
             {
-                RemoteMem.Dispose();
-                RemoteMem = null;
+                ZodiacMemory.Dispose();
+                ZodiacMemory = null;
             }
         }
 
@@ -442,32 +436,32 @@ namespace FF12PCRNGHelper
 
         private void ResetGridHighlighting()
         {
-            if (this._foundIndex > -1)
+            if (_foundIndex > -1)
             {
-                if (this._foundIndex < this.dataGridView2.RowCount)
+                if (_foundIndex < dataGridView2.RowCount)
                 {
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = _defaultBackColor;
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                    dataGridView2.Rows[_foundIndex].DefaultCellStyle.BackColor = _defaultBackColor;
+                    dataGridView2.Rows[_foundIndex].DefaultCellStyle.SelectionBackColor =
                         _defaultBackHighColor;
                 }
 
-                this._foundIndex = -1;
+                _foundIndex = -1;
             }
         }
 
         private void ButtonSearch_Click(object sender, EventArgs e)
         {
-            this.ResetGridHighlighting();
+            ResetGridHighlighting();
 
-            var t = Strings.RemoveWhitespace(this.tbSearch.Text);
+            string t = Strings.RemoveWhitespace(tbSearch.Text);
             if (t.Except("1234567890+-,").Any())
             {
                 return;
             }
 
-            var vals = t.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries);
+            string[] vals = t.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             var parsed = new PSearch[vals.Length];
-            for (var i = 0; i < vals.Length; i++)
+            for (int i = 0; i < vals.Length; i++)
             {
                 CompareType cType;
                 if (vals[i].Contains('+'))
@@ -483,8 +477,8 @@ namespace FF12PCRNGHelper
                     cType = CompareType.Equal;
                 }
 
-                var cl = vals[i].Replace("+", string.Empty).Replace("-", string.Empty);
-                if (!uint.TryParse(cl, out var tmp))
+                string cl = vals[i].Replace("+", string.Empty).Replace("-", string.Empty);
+                if (!uint.TryParse(cl, out uint tmp))
                 {
                     return;
                 }
@@ -497,35 +491,32 @@ namespace FF12PCRNGHelper
                 return;
             }
 
-            this._foundIndex = this.SearchPercentages(parsed);
-            if (this._foundIndex == -1)
+            _foundIndex = SearchPercentages(parsed);
+            if (_foundIndex == -1)
             {
                 MessageBox.Show("Entered percentage(s) not found.");
             }
-            else if (this._foundIndex < this.dataGridView2.RowCount)
+            else if (_foundIndex < dataGridView2.RowCount)
             {
-                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
-                this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                dataGridView2.Rows[_foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                dataGridView2.Rows[_foundIndex].DefaultCellStyle.SelectionBackColor =
                     SelectionHighlightBackColor;
-                this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+                dataGridView2.FirstDisplayedScrollingRowIndex = _foundIndex;
             }
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Config.Save();
-        }
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e) => Config.Save();
 
         private void ButtonConfig_Click(object sender, EventArgs e)
         {
-            var cfg = new ConfigForm(ref this.timer1);
+            var cfg = new ConfigForm(ref timer1);
             if (cfg.ShowDialog(this) == DialogResult.OK)
             {
-                if (this.dataGridView2.RowCount != Config.GridSize)
+                if (dataGridView2.RowCount != Config.GridSize)
                 {
-                    this.dataGridView2.Rows.Clear();
-                    this.dataGridView2.Rows.Add(Config.GridSize);
-                    this.ForceUpdate();
+                    dataGridView2.Rows.Clear();
+                    dataGridView2.Rows.Add(Config.GridSize);
+                    ForceUpdate();
                 }
             }
         }
@@ -534,102 +525,87 @@ namespace FF12PCRNGHelper
         {
             if (e.Modifiers == Keys.Control && e.KeyCode == Keys.Q)
             {
-                this.ButtonGridDump_Click(this.dataGridView2, new EventArgs());
+                ButtonGridDump_Click(dataGridView2, new EventArgs());
             }
         }
 
         private void ButtonGridDump_Click(object sender, EventArgs e)
         {
-            var d = new DumpForm(this.dataGridView2.SelectedRows, this.dataGridView2.Columns);
+            var d = new DumpForm(dataGridView2.SelectedRows, dataGridView2.Columns);
             d.Show(this);
         }
 
-        private void Button3Search_Click(object sender, EventArgs e)
-        {
-            this.SearchPerfectLevels(3);
-        }
+        private void Button3Search_Click(object sender, EventArgs e) => SearchPerfectLevels(3);
 
-        private void Button20002Search_Click(object sender, EventArgs e)
-        {
-            this.DynamicSearchRngDump(() =>
-            {
-                var first = true;
-                for (var i = 0; i < this._rngDump.Length - 5; i++)
-                {
-                    if (first)
-                    {
-                        if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= 2)
-                        {
-                            first = false;
-                            i += 3;
-                        }
-                    }
-                    else
-                    {
-                        if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= 2)
-                        {
-                            this._foundIndex = i - 4;
-                            break;
-                        }
+        private void Button20002Search_Click(object sender, EventArgs e) => DynamicSearchRngDump(() =>
+                                                                          {
+                                                                              bool first = true;
+                                                                              for (int i = 0; i < _rngDump.Length - 5; i++)
+                                                                              {
+                                                                                  if (first)
+                                                                                  {
+                                                                                      if (LevelUpStats.PerfectHpMpCount((uint)numericLevel.Value, ref _rngDump, i) >= 2)
+                                                                                      {
+                                                                                          first = false;
+                                                                                          i += 3;
+                                                                                      }
+                                                                                  }
+                                                                                  else
+                                                                                  {
+                                                                                      if (LevelUpStats.PerfectHpMpCount((uint)numericLevel.Value, ref _rngDump, i) >= 2)
+                                                                                      {
+                                                                                          _foundIndex = i - 4;
+                                                                                          break;
+                                                                                      }
 
-                        i -= 3;
-                        first = true;
-                    }
-                }
-            });
-        }
+                                                                                      i -= 3;
+                                                                                      first = true;
+                                                                                  }
+                                                                              }
+                                                                          });
 
-        private void SearchMenuHighestPerfect_Click(object sender, EventArgs e)
-        {
-            this.DynamicSearchRngDump(() =>
-            {
-                var highest = 0;
-                var highestIndex = -1;
-                for (var i = 0; i < this._rngDump.Length; i++)
-                {
-                    var pAmount = LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i);
-                    if (pAmount > highest)
-                    {
-                        highest = pAmount;
-                        highestIndex = i;
-                    }
-                }
+        private void SearchMenuHighestPerfect_Click(object sender, EventArgs e) => DynamicSearchRngDump(() =>
+                                                                                 {
+                                                                                     int highest = 0;
+                                                                                     int highestIndex = -1;
+                                                                                     for (int i = 0; i < _rngDump.Length; i++)
+                                                                                     {
+                                                                                         int pAmount = LevelUpStats.PerfectHpMpCount((uint)numericLevel.Value, ref _rngDump, i);
+                                                                                         if (pAmount > highest)
+                                                                                         {
+                                                                                             highest = pAmount;
+                                                                                             highestIndex = i;
+                                                                                         }
+                                                                                     }
 
-                this._foundIndex = highestIndex;
-            });
-        }
+                                                                                     _foundIndex = highestIndex;
+                                                                                 });
 
-        private void SearchPerfectLevels(int minLevel)
-        {
-            this.DynamicSearchRngDump(() =>
-            {
-                for (var i = 0; i < this._rngDump.Length - minLevel; i++)
-                {
-                    if (LevelUpStats.PerfectHpMpCount((uint) this.numericLevel.Value, ref this._rngDump, i) >= minLevel)
-                    {
-                        this._foundIndex = i;
-                        break;
-                    }
-                }
-            });
-        }
+        private void SearchPerfectLevels(int minLevel) => DynamicSearchRngDump(() =>
+                                                        {
+                                                            for (int i = 0; i < _rngDump.Length - minLevel; i++)
+                                                            {
+                                                                if (LevelUpStats.PerfectHpMpCount((uint)numericLevel.Value, ref _rngDump, i) >= minLevel)
+                                                                {
+                                                                    _foundIndex = i;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        });
 
-        private void SearchMenu1Search_Click(object sender, EventArgs e)
-        {
-            this.SearchPerfectLevels(1);
-        }
+        private void SearchMenu1Search_Click(object sender, EventArgs e) => SearchPerfectLevels(1);
 
         private void DynamicSearchRngDump(Action action)
         {
-            this.ResetGridHighlighting();
+            ResetGridHighlighting();
 
             try
             {
                 var rng = new RNG2002();
-                var (mt, mti) = RemoteMem.GetMtAndMti(MemoryData.MtAddress);
+                (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
 
                 rng.LoadState(mti, in mt);
-                this._rngDump = rng.Dump(Config.SearchDepth);
+                _rngDump = rng.Dump(Config.SearchDepth);
 
                 action.Invoke();
             }
@@ -642,58 +618,52 @@ namespace FF12PCRNGHelper
             }
             finally
             {
-                this._rngDump = Array.Empty<uint>();
-                if (this._foundIndex < 0)
+                _rngDump = Array.Empty<uint>();
+                if (_foundIndex < 0)
                 {
                     MessageBox.Show("Nothing found.");
                 }
-                else if (this._foundIndex < this.dataGridView2.RowCount)
+                else if (_foundIndex < dataGridView2.RowCount)
                 {
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
-                    this.dataGridView2.Rows[this._foundIndex].DefaultCellStyle.SelectionBackColor =
+                    dataGridView2.Rows[_foundIndex].DefaultCellStyle.BackColor = HighlightBackColor;
+                    dataGridView2.Rows[_foundIndex].DefaultCellStyle.SelectionBackColor =
                         SelectionHighlightBackColor;
-                    this.dataGridView2.FirstDisplayedScrollingRowIndex = this._foundIndex;
+                    dataGridView2.FirstDisplayedScrollingRowIndex = _foundIndex;
                 }
             }
         }
 
-        private void SearchMenu1256_Click(object sender, EventArgs e)
-        {
-            this.DynamicSearchRngDump(() =>
-            {
-                for (var i = 0; i < this._rngDump.Length; i++)
-                {
-                    if (this._rngDump[i] < 0x1000000)
-                    {
-                        this._foundIndex = i;
-                        break;
-                    }
-                }
-            });
-        }
+        private void SearchMenu1256_Click(object sender, EventArgs e) => DynamicSearchRngDump(() =>
+                                                                       {
+                                                                           for (int i = 0; i < _rngDump.Length; i++)
+                                                                           {
+                                                                               if (_rngDump[i] < 0x1000000)
+                                                                               {
+                                                                                   _foundIndex = i;
+                                                                                   break;
+                                                                               }
+                                                                           }
+                                                                       });
 
         private void ButtonRngInjection_Click(object sender, EventArgs e)
         {
             if (!RngInjectionForm.IsOpen)
             {
-                this._rngInjectionForm = new RngInjectionForm(ref this.dataGridView2);
-                this._rngInjectionForm.Show(this);
+                _rngInjectionForm = new RngInjectionForm(ref dataGridView2);
+                _rngInjectionForm.Show(this);
             }
             else
             {
-                if (this._rngInjectionForm?.WindowState == FormWindowState.Minimized)
+                if (_rngInjectionForm?.WindowState == FormWindowState.Minimized)
                 {
-                    this._rngInjectionForm.WindowState = FormWindowState.Normal;
+                    _rngInjectionForm.WindowState = FormWindowState.Normal;
                 }
 
-                this._rngInjectionForm?.Activate();
+                _rngInjectionForm?.Activate();
             }
         }
 
-        private void Numeric_ValueChanged(object sender, EventArgs e)
-        {
-            this.Generate(true);
-        }
+        private void Numeric_ValueChanged(object sender, EventArgs e) => Generate(true);
 
         public struct PSearch
         {
@@ -703,12 +673,12 @@ namespace FF12PCRNGHelper
 
             public PSearch(uint percentage, CompareType compareType)
             {
-                this.Percentage = percentage;
-                this.CompareType = compareType;
+                Percentage = percentage;
+                CompareType = compareType;
             }
         }
 
-        const string tbSearchPlaceholder = "Percentage search";
+        private const string tbSearchPlaceholder = "Percentage search";
 
         private void tbSearch_Enter(object sender, EventArgs e)
         {

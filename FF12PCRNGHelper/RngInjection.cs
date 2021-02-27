@@ -14,14 +14,14 @@
 
         internal static void WriteMti(int mti)
         {
-            if (mti > 624 || mti < 0 || Form1.RemoteMem == null)
+            if (mti > 624 || mti < 0 || Form1.ZodiacMemory == null)
             {
                 return;
             }
 
             try
             {
-                Form1.RemoteMem.Write(MemoryData.MtiAddress, mti);
+                Form1.ZodiacMemory.Write(MemoryData.MtiAddress, mti);
             }
             catch
             {
@@ -30,7 +30,7 @@
 
         internal static void WriteMt(int mti, uint mt, int count = 1)
         {
-            if (Form1.RemoteMem == null)
+            if (Form1.ZodiacMemory == null)
             {
                 return;
             }
@@ -45,11 +45,11 @@
                         array[i] = mt;
                     }
 
-                    Form1.RemoteMem.Write(MemoryData.MtAddress + 4 * mti, array);
+                    Form1.ZodiacMemory.Write(MemoryData.MtAddress + 4 * mti, array);
                 }
                 else
                 {
-                    Form1.RemoteMem.Write(MemoryData.MtAddress + 4 * mti, mt);
+                    Form1.ZodiacMemory.Write(MemoryData.MtAddress + 4 * mti, mt);
                 }
             }
             catch
