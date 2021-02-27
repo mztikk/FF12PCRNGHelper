@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using FF12PCRNGHelper.Patching;
+using RFDown.Windows;
+using RFDown.Windows.Extensions;
 using RFDown.Windows.Memory.Exceptions;
 
 namespace FF12PCRNGHelper
@@ -59,8 +63,19 @@ namespace FF12PCRNGHelper
 
         private uint[][] _rVals = new uint[10][];
 
+        private const int ProcessCheckTimer = 500;
+
+        private readonly Func<bool>[] _attachMethods;
+        private readonly ConcurrentDictionary<ProcessKey, DateTime> _checkedProcs = new ConcurrentDictionary<ProcessKey, DateTime>();
+
         public Form1()
         {
+            _attachMethods = new Func<bool>[]
+            {
+                AttachProcByName,
+                //AttachProcBySignature
+            };
+
             InitializeComponent();
             tbSearch_Leave(null, null);
             //this.dataGridView1.Rows.Add();
@@ -189,8 +204,65 @@ namespace FF12PCRNGHelper
                 return false;
             }
 
-            Process[] procs = Process.GetProcessesByName("FFXII_TZA");
-            if (!procs.Any())
+            foreach (Func<bool> attach in _attachMethods)
+            {
+                if (attach())
+                {
+                    return LoadSignatures();
+                }
+            }
+
+            return false;
+        }
+
+        private async Task<bool> AttachProcAsync() => await Task.Run(AttachProc);
+
+        // implemented but unused for now
+        // i dont like this implementation and its not needed for now, since all game versions(steam, gamepass, etc) seem to have the same process name
+        // so no need to scan all open processes for patterns
+        private bool AttachProcBySignature()
+        {
+            IEnumerable<Process> procs = ProcessHelpers.GetProcesses((mem) =>
+            {
+                // maybe add recheck timeout
+                DateTime now = DateTime.UtcNow;
+                var processKey = ProcessKey.ForProcess(mem.NativeProcess);
+                if (_checkedProcs.ContainsKey(processKey))
+                {
+                    return false;
+                }
+
+                long foundSig = mem.FindSignature(MemoryData.MtiSig);
+                if (foundSig == -1)
+                {
+                    _checkedProcs[processKey] = now;
+                    return false;
+                }
+
+                return true;
+            });
+
+            Process? proc = null;
+            foreach (Process item in procs)
+            {
+                proc = item;
+                break;
+            }
+
+            if (proc is null || proc.HasExited)
+            {
+                return false;
+            }
+
+            ZodiacMemory = new ZodiacMemory(proc);
+            return true;
+        }
+
+        private bool AttachProcByName()
+        {
+            const string procName = "FFXII_TZA";
+            Process[] procs = Process.GetProcessesByName(procName);
+            if (procs.Length == 0)
             {
                 return false;
             }
@@ -202,6 +274,31 @@ namespace FF12PCRNGHelper
             }
 
             ZodiacMemory = new ZodiacMemory(proc);
+            return true;
+        }
+
+        private bool LoadSignatures()
+        {
+            if (ZodiacMemory is null)
+            {
+                throw new Exception("Not initialized and attached to process");
+            }
+
+            long found = ZodiacMemory.FindSignature(MemoryData.MtiSig);
+
+            if (found == -1)
+            {
+                return false;
+            }
+
+            MemoryData.BaseAddress = new IntPtr(ZodiacMemory.MainModule.BaseAddress.ToInt64());
+
+            long rel = found - ZodiacMemory.MainModule.BaseAddress.ToInt64();
+            int movaddr = ZodiacMemory.Read<int>(new IntPtr(found));
+            long mtiaddr = rel + movaddr + 4;
+
+            MemoryData.LoadMtiAndMt(new IntPtr(mtiaddr + ZodiacMemory.MainModule.BaseAddress.ToInt64()));
+
             return true;
         }
 
@@ -338,46 +435,61 @@ namespace FF12PCRNGHelper
             }
         }
 
-        private void Timer1_Tick(object sender, EventArgs e)
+        private async void Timer1_Tick(object sender, EventArgs e)
         {
             if (_lock)
             {
                 return;
             }
 
-            if (ZodiacMemory == null)
+            _lock = true;
+
+            try
             {
-                if (AttachProc())
+                if (ZodiacMemory == null)
                 {
-                    if (Config.PatchAutoPause)
+                    if (await AttachProcAsync())
                     {
-                        AutoPause.Apply();
+                        timer1.Interval = Config.RefreshInterval;
+                        if (Config.PatchAutoPause)
+                        {
+                            AutoPause.Apply();
+                        }
+                    }
+                    else
+                    {
+                        //timer1.Interval = ProcessCheckTimer;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
+
+                        _movement = _rng.Sync(mti, in mt);
+
+                        // On load or rng injection, reload and reset.
+                        if (_movement == -1)
+                        {
+                            _rng.LoadState(mti, in mt);
+                            ResetGridHighlighting();
+                        }
+
+                        Generate();
+                    }
+                    // Couldn't read from process, so we dispose.
+                    catch (ReadMemoryException)
+                    {
+                        ZodiacMemory.Dispose();
+                        ZodiacMemory = null;
+                        //timer1.Interval = ProcessCheckTimer;
                     }
                 }
             }
-            else
+            finally
             {
-                try
-                {
-                    (uint[] mt, int mti) = ZodiacMemory.GetMtAndMti(MemoryData.MtAddress);
-
-                    _movement = _rng.Sync(mti, in mt);
-
-                    // On load or rng injection, reload and reset.
-                    if (_movement == -1)
-                    {
-                        _rng.LoadState(mti, in mt);
-                        ResetGridHighlighting();
-                    }
-
-                    Generate();
-                }
-                // Couldn't read from process, so we dispose.
-                catch (ReadMemoryException)
-                {
-                    ZodiacMemory.Dispose();
-                    ZodiacMemory = null;
-                }
+                _lock = false;
             }
         }
 
@@ -396,7 +508,7 @@ namespace FF12PCRNGHelper
                 Generate();
             }
             // Couldn't read from process, so we dispose.
-            catch (Win32Exception)
+            catch (ReadMemoryException)
             {
                 ZodiacMemory.Dispose();
                 ZodiacMemory = null;
@@ -665,11 +777,11 @@ namespace FF12PCRNGHelper
 
         private void Numeric_ValueChanged(object sender, EventArgs e) => Generate(true);
 
-        public struct PSearch
+        public readonly struct PSearch
         {
-            public uint Percentage { get; }
+            public readonly uint Percentage;
 
-            public CompareType CompareType { get; }
+            public readonly CompareType CompareType;
 
             public PSearch(uint percentage, CompareType compareType)
             {
