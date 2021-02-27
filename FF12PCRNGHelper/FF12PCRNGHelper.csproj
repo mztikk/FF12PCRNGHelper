@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\ILMerge.3.0.41\build\ILMerge.props" Condition="Exists('..\packages\ILMerge.3.0.41\build\ILMerge.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
@@ -18,11 +18,9 @@
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
-
   <PropertyGroup>
     <Output_dir>bin/$(Platform)/$(Configuration)</Output_dir>
   </PropertyGroup>
-  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
@@ -45,8 +43,8 @@
     <Reference Include="RFDown, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RFDown.0.1.0\lib\netstandard2.0\RFDown.dll</HintPath>
     </Reference>
-    <Reference Include="RFDown.Windows, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RFDown.Windows.0.1.0\lib\netstandard2.0\RFDown.Windows.dll</HintPath>
+    <Reference Include="RFDown.Windows, Version=0.1.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RFDown.Windows.0.1.1\lib\netstandard2.0\RFDown.Windows.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -70,7 +68,6 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compare.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="ConfigForm.cs">
       <SubType>Form</SubType>
@@ -162,25 +159,6 @@
   <Target Name="ILMerge" AfterTargets="Build">
     <MakeDir Directories="$(SolutionDir)out" />
     <!-- the ILMergePath property points to the location of ILMerge.exe console application -->
-    <Exec Command="$(ILMergeConsolePath) $(Output_dir)/$(AssemblyName).exe ^
-    /out:$(SolutionDir)out/$(AssemblyName).exe ^
-    $(Output_dir)/RFDown.dll ^
-    $(Output_dir)/RFDown.Windows.dll ^
-    $(Output_dir)/System.Buffers.dll ^
-    $(Output_dir)/System.Data.Common.dll ^
-    $(Output_dir)/System.Diagnostics.StackTrace.dll ^
-    $(Output_dir)/System.Diagnostics.Tracing.dll ^
-    $(Output_dir)/System.Globalization.Extensions.dll ^
-    $(Output_dir)/System.IO.Compression.dll ^
-    $(Output_dir)/System.Memory.dll ^
-    $(Output_dir)/System.Net.Http.dll ^
-    $(Output_dir)/System.Net.Sockets.dll ^
-    $(Output_dir)/System.Numerics.Vectors.dll ^
-    $(Output_dir)/System.Runtime.CompilerServices.Unsafe.dll ^
-    $(Output_dir)/System.Runtime.Serialization.Primitives.dll ^
-    $(Output_dir)/System.Security.Cryptography.Algorithms.dll ^
-    $(Output_dir)/System.Security.SecureString.dll ^
-    $(Output_dir)/System.Threading.Overlapped.dll ^
-    $(Output_dir)/System.Xml.XPath.XDocument.dll ^ " />
+    <Exec Command="$(ILMergeConsolePath) $(Output_dir)/$(AssemblyName).exe ^&#xD;&#xA;    /out:$(SolutionDir)out/$(AssemblyName).exe ^&#xD;&#xA;    $(Output_dir)/RFDown.dll ^&#xD;&#xA;    $(Output_dir)/RFDown.Windows.dll ^&#xD;&#xA;    $(Output_dir)/System.Buffers.dll ^&#xD;&#xA;    $(Output_dir)/System.Data.Common.dll ^&#xD;&#xA;    $(Output_dir)/System.Diagnostics.StackTrace.dll ^&#xD;&#xA;    $(Output_dir)/System.Diagnostics.Tracing.dll ^&#xD;&#xA;    $(Output_dir)/System.Globalization.Extensions.dll ^&#xD;&#xA;    $(Output_dir)/System.IO.Compression.dll ^&#xD;&#xA;    $(Output_dir)/System.Memory.dll ^&#xD;&#xA;    $(Output_dir)/System.Net.Http.dll ^&#xD;&#xA;    $(Output_dir)/System.Net.Sockets.dll ^&#xD;&#xA;    $(Output_dir)/System.Numerics.Vectors.dll ^&#xD;&#xA;    $(Output_dir)/System.Runtime.CompilerServices.Unsafe.dll ^&#xD;&#xA;    $(Output_dir)/System.Runtime.Serialization.Primitives.dll ^&#xD;&#xA;    $(Output_dir)/System.Security.Cryptography.Algorithms.dll ^&#xD;&#xA;    $(Output_dir)/System.Security.SecureString.dll ^&#xD;&#xA;    $(Output_dir)/System.Threading.Overlapped.dll ^&#xD;&#xA;    $(Output_dir)/System.Xml.XPath.XDocument.dll ^ " />
   </Target>
 </Project>
