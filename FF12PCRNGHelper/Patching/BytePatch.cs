@@ -15,11 +15,11 @@ namespace FF12PCRNGHelper.Patching
 
         public virtual bool Apply()
         {
-            if (Form1.RemoteMem != null)
+            if (Form1.ZodiacMemory != null)
             {
                 try
                 {
-                    Form1.RemoteMem.Write(this.Address, this.BytesToPatch);
+                    Form1.ZodiacMemory.Write(this.Address, this.BytesToPatch);
                     return true;
                 }
                 catch
@@ -32,11 +32,11 @@ namespace FF12PCRNGHelper.Patching
 
         public virtual bool Remove()
         {
-            if (Form1.RemoteMem != null)
+            if (Form1.ZodiacMemory != null)
             {
                 try
                 {
-                    Form1.RemoteMem.Write(this.Address, this.OriginalBytes);
+                    Form1.ZodiacMemory.Write(this.Address, this.OriginalBytes);
                     return true;
                 }
                 catch
