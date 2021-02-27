@@ -48,6 +48,7 @@
 */
 
 using System;
+using RFDown.Comparison;
 
 namespace FF12PCRNGHelper
 {
@@ -240,7 +241,7 @@ namespace FF12PCRNGHelper
                 return -1;
             }
 
-            if (Compare.Equal(this.mt, syncMt))
+            if (FastCompare.Equals(this.mt, syncMt))
             {
                 var diff = syncMti - this.mti;
                 this.mti = syncMti;
@@ -248,7 +249,7 @@ namespace FF12PCRNGHelper
                 return diff;
             }
 
-            if (Compare.Equal(this.FutureState[0], syncMt))
+            if (FastCompare.Equals(this.FutureState[0], syncMt))
             {
                 var diff = syncMti + (N - this.mti);
                 this.LoadState(syncMti, in syncMt);
@@ -256,7 +257,7 @@ namespace FF12PCRNGHelper
                 return diff;
             }
 
-            if (Compare.Equal(this.FutureState[1], syncMt))
+            if (FastCompare.Equals(this.FutureState[1], syncMt))
             {
                 var diff = syncMti + (N - this.mti);
                 this.LoadState(syncMti, in syncMt);
