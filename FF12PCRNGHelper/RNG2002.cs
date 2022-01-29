@@ -48,7 +48,7 @@
 */
 
 using System;
-using RFDown.Comparison;
+using RFReborn.Comparison;
 
 namespace FF12PCRNGHelper
 {

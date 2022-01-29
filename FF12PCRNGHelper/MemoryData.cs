@@ -1,5 +1,5 @@
 ﻿using System;
-using RFDown.AoB;
+using RFReborn.AoB;
 
 namespace FF12PCRNGHelper
 {

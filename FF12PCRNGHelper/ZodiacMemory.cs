@@ -1,7 +1,7 @@
 ﻿using System;
-using RFDown.Windows.Memory;
-using RFDown.Windows.Memory.Exceptions;
-using RFDown.Windows.Native;
+using RFReborn.Windows.Memory;
+using RFReborn.Windows.Memory.Exceptions;
+using RFReborn.Windows.Native;
 
 namespace FF12PCRNGHelper
 {

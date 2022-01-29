@@ -9,9 +9,9 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using FF12PCRNGHelper.Patching;
-using RFDown.Windows;
-using RFDown.Windows.Extensions;
-using RFDown.Windows.Memory.Exceptions;
+using RFReborn.Windows;
+using RFReborn.Windows.Extensions;
+using RFReborn.Windows.Memory.Exceptions;
 
 namespace FF12PCRNGHelper
 {
